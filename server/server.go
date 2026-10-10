@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"antigravity-token-monitor/collector"
-	"antigravity-token-monitor/db"
+	"awesome-token-monitor/collector"
+	"awesome-token-monitor/db"
 )
 
 type Server struct {
@@ -55,7 +55,7 @@ func (s *Server) Start() error {
 
 	addr := fmt.Sprintf(":%d", s.port)
 	fmt.Printf("================================================================\n")
-	fmt.Printf("  Universal AI Agent Token & Model Monitor (Go Edition)\n")
+	fmt.Printf("  Awesome Token Monitor (Go Edition)\n")
 	fmt.Printf("  Web Dashboard: http://localhost:%d\n", s.port)
 	fmt.Printf("  Supported Agents: Antigravity, Cindy (Codex/Claude/Pi), Codex, WorkBuddy, Qoder, ZCode\n")
 	fmt.Printf("================================================================\n")

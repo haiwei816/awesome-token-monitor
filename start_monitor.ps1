@@ -28,7 +28,7 @@ if ($Background) {
     Start-Process "http://localhost:$Port"
     Write-Host "[+] 服务已在后台成功运行！访问地址: http://localhost:$Port" -ForegroundColor Green
 } else {
-    Write-Host "[*] 正在启动 AI Agent Token 监控服务 (Golang 版)..." -ForegroundColor Cyan
+    Write-Host "[*] 正在启动 Awesome Token Monitor (Golang 版)..." -ForegroundColor Cyan
     Start-Process "http://localhost:$Port"
     & $exePath -port $Port
 }

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"antigravity-token-monitor/collector"
+	"awesome-token-monitor/collector"
 
 	_ "modernc.org/sqlite"
 )

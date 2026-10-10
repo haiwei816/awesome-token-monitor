@@ -1,4 +1,4 @@
-module antigravity-token-monitor
+module awesome-token-monitor
 
 go 1.27.2
 

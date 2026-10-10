@@ -9,9 +9,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"antigravity-token-monitor/collector"
-	"antigravity-token-monitor/db"
-	"antigravity-token-monitor/server"
+	"awesome-token-monitor/collector"
+	"awesome-token-monitor/db"
+	"awesome-token-monitor/server"
 )
 
 func isPortAvailable(port int) bool {

@@ -1,6 +1,6 @@
 @echo off
 chcp 65001 >nul
-title Universal AI Agent Token Monitor (Go Edition)
+title Awesome Token Monitor (Go Edition)
 
 echo ===================================================
 echo     启动 全平台 AI Agent Token 监控面板 (Golang 版)

@@ -1,7 +1,7 @@
-# 🌐 Universal AI Agent Token & 模型监控中心 (Golang 高性能重构版)
+# 🚀 Awesome Token Monitor (AI Agent 模型与 Token 监控中心)
 
 专为本地主流 AI 编程助手与 Agent 工具打造的**通用型 Token 使用统计、模型型号追踪、全历史天数账本与会话遥测监控大盘**。
-本项目已由 Python 全量重构为高性能 **Golang 原生二进制引擎**，支持 Windows 无依赖一键极速运行。
+本项目采用高性能 **Golang 原生二进制引擎**，支持 Windows/macOS/Linux 无依赖一键极速运行。
 
 ---
 
