@@ -61,6 +61,28 @@ function formatDate(isoStr) {
   }
 }
 
+// Toast Notification Helper
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  let icon = 'ℹ️';
+  if (type === 'success') icon = '✅';
+  else if (type === 'error') icon = '⚠️';
+  toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+  container.appendChild(toast);
+  requestAnimationFrame(() => {
+    toast.classList.add('show');
+  });
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => {
+      if (toast.parentNode) toast.parentNode.removeChild(toast);
+    }, 300);
+  }, 3200);
+}
+
 // App Initialization
 document.addEventListener('DOMContentLoaded', () => {
   initEventListeners();
@@ -74,11 +96,15 @@ function initEventListeners() {
     const btn = document.getElementById('btnSync');
     btn.disabled = true;
     btn.innerHTML = `<svg class="spin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> 同步中...`;
+    const t0 = performance.now();
     try {
       await fetch('/api/scan', { method: 'POST' });
       await loadAllData();
+      const elapsed = Math.round(performance.now() - t0);
+      showToast(`遥测数据同步完成 (耗时 ${elapsed}ms)`, 'success');
     } catch (e) {
       console.error(e);
+      showToast(`同步失败: ${e.message}`, 'error');
     } finally {
       btn.disabled = false;
       btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg> 立即同步`;
@@ -89,6 +115,7 @@ function initEventListeners() {
   document.getElementById('btnExport').addEventListener('click', () => {
     const choice = confirm("点击 [确定] 导出当前视图的 Excel/CSV 报表\n点击 [取消] 导出完整 JSON 数据");
     const query = `agent=${currentAgent}&model=${currentModel}&date=${currentDate}`;
+    showToast('正在导出报表文件...', 'info');
     if (choice) {
       window.location.href = `/api/export?format=csv&${query}`;
     } else {
@@ -438,7 +465,7 @@ function renderModelsList(models) {
 
   const maxTokens = Math.max(...models.map(m => m.total_tokens), 1);
 
-  models.forEach(m => {
+  models.forEach((m, idx) => {
     const isSelected = (currentModel === m.model_display_name);
     const percent = ((m.total_tokens / maxTokens) * 100).toFixed(1);
     const item = document.createElement('div');
@@ -462,13 +489,22 @@ function renderModelsList(models) {
       loadAllData();
     };
 
+    let rankClass = '';
+    if (idx === 0) rankClass = 'rank-1';
+    else if (idx === 1) rankClass = 'rank-2';
+    else if (idx === 2) rankClass = 'rank-3';
+
+    const rankBadge = `<span class="model-rank-badge ${rankClass}">#${idx + 1}</span>`;
+
     const activePill = isSelected 
       ? '<span class="model-active-pill">✓ 已筛选 (点击取消)</span>' 
       : '';
 
     item.innerHTML = `
       <div class="project-item-header">
-        <span style="font-weight: 600; color: #fbbf24;">🤖 ${m.model_display_name} ${activePill}</span>
+        <span style="font-weight: 600; color: #fbbf24; display: flex; align-items: center; gap: 4px;">
+          ${rankBadge} 🤖 ${m.model_display_name} ${activePill}
+        </span>
         <span style="font-weight: 700; color: #fff;">${formatTokens(m.total_tokens)}</span>
       </div>
       <div class="project-progress-bar">
@@ -548,16 +584,22 @@ async function loadTrends() {
           label: '输入 Tokens',
           data: inputData,
           backgroundColor: 'rgba(59, 130, 246, 0.75)',
+          hoverBackgroundColor: '#3b82f6',
           borderColor: '#3b82f6',
           borderWidth: 1,
+          borderRadius: 4,
+          maxBarThickness: 32,
           stack: 'tokens'
         },
         {
           label: '输出 Tokens',
           data: outputData,
           backgroundColor: 'rgba(236, 72, 153, 0.85)',
+          hoverBackgroundColor: '#ec4899',
           borderColor: '#ec4899',
           borderWidth: 1,
+          borderRadius: 4,
+          maxBarThickness: 32,
           stack: 'tokens'
         },
         {
@@ -565,11 +607,13 @@ async function loadTrends() {
           data: cacheData,
           type: 'line',
           borderColor: '#10b981',
-          backgroundColor: 'rgba(16, 185, 129, 0.1)',
-          borderWidth: 2,
+          backgroundColor: 'rgba(16, 185, 129, 0.12)',
+          borderWidth: 2.5,
           pointRadius: 3,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#10b981',
           fill: true,
-          tension: 0.3
+          tension: 0.4
         }
       ]
     },
@@ -577,24 +621,38 @@ async function loadTrends() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { color: '#94a3b8', font: { size: 11 } } },
+        legend: {
+          labels: {
+            color: '#94a3b8',
+            font: { size: 11, family: 'Inter, system-ui, sans-serif' },
+            usePointStyle: true,
+            boxWidth: 8
+          }
+        },
         tooltip: {
           mode: 'index',
           intersect: false,
+          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+          borderColor: 'rgba(255, 255, 255, 0.12)',
+          borderWidth: 1,
+          padding: 10,
+          titleColor: '#f8fafc',
+          bodyColor: '#cbd5e1',
+          cornerRadius: 8,
           callbacks: {
-            label: (ctx) => `${ctx.dataset.label}: ${formatTokens(ctx.raw)} (${formatExact(ctx.raw)})`
+            label: (ctx) => `  ${ctx.dataset.label}: ${formatTokens(ctx.raw)} (${formatExact(ctx.raw)})`
           }
         }
       },
       scales: {
         x: {
           stacked: true,
-          grid: { color: 'rgba(255, 255, 255, 0.05)' },
-          ticks: { color: '#64748b' }
+          grid: { color: 'rgba(255, 255, 255, 0.04)' },
+          ticks: { color: '#64748b', font: { size: 11 } }
         },
         y: {
-          grid: { color: 'rgba(255, 255, 255, 0.05)' },
-          ticks: { color: '#64748b', callback: (v) => formatTokens(v) }
+          grid: { color: 'rgba(255, 255, 255, 0.04)' },
+          ticks: { color: '#64748b', font: { size: 11 }, callback: (v) => formatTokens(v) }
         }
       }
     }
@@ -811,11 +869,12 @@ function renderStepGrowthChart(steps) {
           label: '输入上下文 (Input Context)',
           data: inputData,
           borderColor: '#6366f1',
-          backgroundColor: 'rgba(99, 102, 241, 0.1)',
+          backgroundColor: 'rgba(99, 102, 241, 0.12)',
           fill: true,
-          tension: 0.3,
+          tension: 0.4,
           borderWidth: 2,
-          pointRadius: 3
+          pointRadius: 3,
+          pointHoverRadius: 5
         },
         {
           label: '缓存读取 (Cache Hit)',
@@ -823,6 +882,7 @@ function renderStepGrowthChart(steps) {
           borderColor: '#10b981',
           borderWidth: 2,
           pointRadius: 2,
+          pointHoverRadius: 4,
           borderDash: [4, 4]
         },
         {
@@ -830,7 +890,8 @@ function renderStepGrowthChart(steps) {
           data: outputData,
           borderColor: '#ec4899',
           borderWidth: 2,
-          pointRadius: 2
+          pointRadius: 2,
+          pointHoverRadius: 4
         }
       ]
     },
@@ -838,19 +899,33 @@ function renderStepGrowthChart(steps) {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { color: '#94a3b8', font: { size: 10 } } },
+        legend: {
+          labels: {
+            color: '#94a3b8',
+            font: { size: 10, family: 'Inter, system-ui, sans-serif' },
+            usePointStyle: true,
+            boxWidth: 8
+          }
+        },
         tooltip: {
           mode: 'index',
           intersect: false,
+          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+          borderColor: 'rgba(255, 255, 255, 0.12)',
+          borderWidth: 1,
+          padding: 8,
+          titleColor: '#f8fafc',
+          bodyColor: '#cbd5e1',
+          cornerRadius: 6,
           callbacks: {
-            label: (ctx) => `${ctx.dataset.label}: ${formatTokens(ctx.raw)} (${formatExact(ctx.raw)})`
+            label: (ctx) => `  ${ctx.dataset.label}: ${formatTokens(ctx.raw)} (${formatExact(ctx.raw)})`
           }
         }
       },
       scales: {
-        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#64748b' } },
+        x: { grid: { color: 'rgba(255, 255, 255, 0.04)' }, ticks: { color: '#64748b' } },
         y: { 
-          grid: { color: 'rgba(255, 255, 255, 0.05)' }, 
+          grid: { color: 'rgba(255, 255, 255, 0.04)' }, 
           ticks: { color: '#64748b', callback: (v) => formatTokens(v) } 
         }
       }
@@ -865,7 +940,7 @@ function closeDrawer() {
 
 function copyId(id) {
   navigator.clipboard.writeText(id).then(() => {
-    alert(`已复制会话ID: ${id}`);
+    showToast(`已复制会话 ID: #${id.slice(0, 8)}`, 'success');
   }).catch(() => {
     prompt('会话ID:', id);
   });
