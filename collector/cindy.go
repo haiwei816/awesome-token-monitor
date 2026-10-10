@@ -195,7 +195,7 @@ func (s *CindyScanner) scanSingleDB(dbPath, defaultProject string) ([]Conversati
 	mRows, err := db.Query(`
 		SELECT 
 			session_id, 
-			strftime('%Y-%m-%d', datetime(created_at / 1000, 'unixepoch')) as day, 
+			strftime('%Y-%m-%d', datetime(created_at / 1000, 'unixepoch', 'localtime')) as day, 
 			count(*) 
 		FROM messages 
 		GROUP BY session_id, day;
@@ -496,7 +496,7 @@ func (s *CindyScanner) scanSingleDB(dbPath, defaultProject string) ([]Conversati
 		}
 		var sessMsgDays []msgDay
 		mRows, err := db.Query(`
-			SELECT strftime('%Y-%m-%d', datetime(created_at / 1000, 'unixepoch')) as day, count(*)
+			SELECT strftime('%Y-%m-%d', datetime(created_at / 1000, 'unixepoch', 'localtime')) as day, count(*)
 			FROM messages
 			WHERE session_id = ?
 			GROUP BY day;

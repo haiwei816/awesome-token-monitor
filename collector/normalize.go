@@ -88,22 +88,50 @@ func FormatModelName(rawName string) string {
 	return m
 }
 
-// ExtractDateBucket extracts YYYY-MM-DD from an ISO string, timestamp or number.
+// ExtractDateBucket extracts YYYY-MM-DD from an ISO string, timestamp or number in local timezone.
 func ExtractDateBucket(tsStr string) string {
 	ts := strings.TrimSpace(tsStr)
 	if ts == "" {
-		return time.Now().UTC().Format("2006-01-02")
+		return time.Now().Local().Format("2006-01-02")
 	}
+
+	// 1. Try parsing ISO8601/RFC3339 timestamps with time/timezone
+	formats := []string{
+		time.RFC3339Nano,
+		time.RFC3339,
+		"2006-01-02T15:04:05.999999999",
+		"2006-01-02T15:04:05.999999",
+		"2006-01-02T15:04:05",
+		"2006-01-02 15:04:05.999999999-07:00",
+		"2006-01-02 15:04:05.999999-07:00",
+		"2006-01-02 15:04:05.999999999+00:00",
+		"2006-01-02 15:04:05.999999+00:00",
+		"2006-01-02 15:04:05.999999",
+		"2006-01-02 15:04:05",
+	}
+	for _, f := range formats {
+		if t, err := time.Parse(f, ts); err == nil {
+			return t.Local().Format("2006-01-02")
+		}
+	}
+
+	// 2. Try parsing unix epoch timestamps (milliseconds or seconds)
+	if val, err := strconv.ParseFloat(ts, 64); err == nil {
+		sec := int64(val)
+		nsec := int64(0)
+		if val > 1e11 { // ms
+			sec = int64(val / 1000.0)
+			nsec = int64((val - float64(sec*1000)) * 1e6)
+		}
+		return time.Unix(sec, nsec).Local().Format("2006-01-02")
+	}
+
+	// 3. Fallback: if it's already YYYY-MM-DD
 	if len(ts) >= 10 && ts[4] == '-' && ts[7] == '-' {
 		return ts[:10]
 	}
-	if val, err := strconv.ParseFloat(ts, 64); err == nil {
-		if val > 1e11 { // ms
-			val /= 1000.0
-		}
-		return time.Unix(int64(val), 0).UTC().Format("2006-01-02")
-	}
-	return time.Now().UTC().Format("2006-01-02")
+
+	return time.Now().Local().Format("2006-01-02")
 }
 
 // ResolveCindyEngine maps Cindy's internal agent_kind and model name to the true underlying engine.

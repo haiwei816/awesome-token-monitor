@@ -109,10 +109,19 @@ func (d *DB) initSchema() error {
 	return nil
 }
 
+func resolveDateFilter(d string) string {
+	if d == "today" {
+		return time.Now().Local().Format("2006-01-02")
+	}
+	return d
+}
+
 // GetSummary returns aggregated KPIs and breakdowns.
 func (d *DB) GetSummary(agentFilter, modelFilter, dateFilter string) (*collector.SummaryResponse, error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
+
+	dateFilter = resolveDateFilter(dateFilter)
 
 	var where []string
 	var args []interface{}
@@ -166,7 +175,7 @@ func (d *DB) GetSummary(agentFilter, modelFilter, dateFilter string) (*collector
 	}
 
 	// Today stats from step_records
-	todayStr := time.Now().UTC().Format("2006-01-02")
+	todayStr := time.Now().Local().Format("2006-01-02")
 	stepWhere := []string{"date_bucket = ?"}
 	stepArgs := []interface{}{todayStr}
 	if agentFilter != "" && agentFilter != "all" {
@@ -261,6 +270,8 @@ func (d *DB) GetTrends(agentFilter, granularity, modelFilter, dateFilter string)
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 
+	dateFilter = resolveDateFilter(dateFilter)
+
 	var where []string
 	var args []interface{}
 
@@ -321,6 +332,8 @@ func (d *DB) GetTrends(agentFilter, granularity, modelFilter, dateFilter string)
 func (d *DB) GetConversations(agentFilter, modelFilter, dateFilter, sortCol, order, search string, limit, offset int) (map[string]interface{}, error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
+
+	dateFilter = resolveDateFilter(dateFilter)
 
 	var where []string
 	var args []interface{}
@@ -575,6 +588,8 @@ func (d *DB) GetConversationSteps(conversationID, dateBucket string) ([]collecto
 	d.mu.RLock()
 	defer d.mu.RUnlock()
 
+	dateBucket = resolveDateFilter(dateBucket)
+
 	var where []string
 	var args []interface{}
 
@@ -663,7 +678,7 @@ func (d *DB) GetDaily(agentFilter, modelFilter string, limit int) ([]collector.D
 	}
 	defer rows.Close()
 
-	todayStr := time.Now().UTC().Format("2006-01-02")
+	todayStr := time.Now().Local().Format("2006-01-02")
 	list := []collector.DailyRecord{}
 	for rows.Next() {
 		var r collector.DailyRecord

@@ -137,7 +137,12 @@ function initEventListeners() {
 
   // Date Filter Select
   document.getElementById('dateFilterSelect').addEventListener('change', (e) => {
-    currentDate = e.target.value;
+    const val = e.target.value;
+    if (val === 'today') {
+      currentDate = getLocalDateString();
+    } else {
+      currentDate = val;
+    }
     currentPage = 0;
     loadAllData();
   });
@@ -225,6 +230,9 @@ function setupAutoRefresh() {
 
 async function loadAllData(silent = false) {
   try {
+    if (currentDate === 'today') {
+      currentDate = getLocalDateString();
+    }
     await Promise.all([
       loadSummary(),
       loadDailyRecords(),
@@ -346,8 +354,25 @@ async function loadDailyRecords() {
   const container = document.getElementById('dailyCardsContainer');
   container.innerHTML = '';
 
+  const todayStr = getLocalDateString();
+  const hasToday = dailyList && dailyList.some(d => d.date_bucket === todayStr || d.is_today);
+  if (!hasToday && dailyList) {
+    dailyList.unshift({
+      date_bucket: todayStr,
+      is_today: true,
+      conv_count: 0,
+      total_tokens: 0,
+      total_input: 0,
+      total_output: 0,
+      cache_tokens: 0,
+      total_steps: 0,
+      agents_list: [],
+      models_list: []
+    });
+  }
+
   // Update date selector dropdown
-  updateDateSelectOptions(dailyList);
+  updateDateSelectOptions(dailyList || []);
 
   if (!dailyList || dailyList.length === 0) {
     container.innerHTML = '<div style="color: var(--text-dim); padding: 20px;">暂无该条件下的天数记录</div>';
@@ -356,11 +381,11 @@ async function loadDailyRecords() {
 
   dailyList.forEach(d => {
     const card = document.createElement('div');
-    const isActive = currentDate === d.date_bucket;
+    const isActive = currentDate === d.date_bucket || (currentDate === 'today' && d.is_today);
     card.className = `daily-card ${isActive ? 'active' : ''}`;
     card.title = `点击切换筛选：仅看 ${d.date_bucket} 的所有会话与指标`;
     card.onclick = () => {
-      if (currentDate === d.date_bucket) {
+      if (currentDate === d.date_bucket || (currentDate === 'today' && d.is_today)) {
         currentDate = 'all'; // toggle off
       } else {
         currentDate = d.date_bucket;
@@ -403,14 +428,14 @@ async function loadDailyRecords() {
 
 function updateDateSelectOptions(dailyList) {
   const sel = document.getElementById('dateFilterSelect');
-  const currentVal = sel.value || currentDate;
+  const todayStr = getLocalDateString();
   
   let opts = '';
   // 1. Today option (Default)
-  const todayItem = dailyList.find(d => d.is_today || d.date_bucket === todayDateStr);
+  const todayItem = dailyList.find(d => d.is_today || d.date_bucket === todayStr);
   const todayTokens = todayItem ? formatTokens(todayItem.total_tokens) : '--';
-  const isTodaySelected = (currentDate === todayDateStr);
-  opts += `<option value="${todayDateStr}" ${isTodaySelected ? 'selected' : ''}>📅 今日 (${todayDateStr}) (${todayTokens}) [默认]</option>`;
+  const isTodaySelected = (currentDate === todayStr || currentDate === 'today');
+  opts += `<option value="${todayStr}" ${isTodaySelected ? 'selected' : ''}>📅 今日 (${todayStr}) (${todayTokens}) [默认]</option>`;
   
   // 2. All time option
   const isAllSelected = (currentDate === 'all');
@@ -418,7 +443,7 @@ function updateDateSelectOptions(dailyList) {
   
   // 3. Other historical days
   dailyList.forEach(d => {
-    if (d.date_bucket === todayDateStr) return; // already added above
+    if (d.date_bucket === todayStr) return; // already added above
     const isSelected = (d.date_bucket === currentDate) ? 'selected' : '';
     opts += `<option value="${d.date_bucket}" ${isSelected}>📅 ${d.date_bucket} (${formatTokens(d.total_tokens)})</option>`;
   });
