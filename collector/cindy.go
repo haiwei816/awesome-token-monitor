@@ -24,6 +24,29 @@ func hashString(s string) int {
 	return int(h.Sum32() % 10000000)
 }
 
+func (s *CindyScanner) loadPiSessionIDs() map[string]bool {
+	piSet := make(map[string]bool)
+	dirs := []string{
+		filepath.Join(s.CNDir, "pi-agent-home", "runtime", "pi-subagent-deleted"),
+		filepath.Join(s.CNDir, "pi-agent-home", "runtime", "pi-subagent-runs"),
+		filepath.Join(s.GlobalDir, "pi-agent-home", "runtime", "pi-subagent-deleted"),
+		filepath.Join(s.GlobalDir, "pi-agent-home", "runtime", "pi-subagent-runs"),
+	}
+	for _, d := range dirs {
+		entries, err := os.ReadDir(d)
+		if err != nil {
+			continue
+		}
+		for _, e := range entries {
+			name := strings.TrimSuffix(e.Name(), filepath.Ext(e.Name()))
+			if len(name) > 0 {
+				piSet[name] = true
+			}
+		}
+	}
+	return piSet
+}
+
 func (s *CindyScanner) Scan(scanStates map[string][2]float64) ([]Conversation, []StepRecord, map[string][2]float64, error) {
 	var allConvs []Conversation
 	var allSteps []StepRecord
@@ -34,7 +57,9 @@ func (s *CindyScanner) Scan(scanStates map[string][2]float64) ([]Conversation, [
 		defaultPrj string
 	}{
 		{s.GlobalDir, "Cindy-Global"},
+		{filepath.Join(s.GlobalDir, "databases"), "Cindy-Global"},
 		{s.CNDir, "Cindy-CN"},
+		{filepath.Join(s.CNDir, "databases"), "Cindy-CN"},
 	}
 
 	for _, dInfo := range dirs {
@@ -110,6 +135,8 @@ func (s *CindyScanner) scanSingleDB(dbPath, defaultProject string) ([]Conversati
 		return nil, nil, 0, err
 	}
 	defer db.Close()
+
+	piSessions := s.loadPiSessionIDs()
 
 	// 1. Read sessions
 	sessionsMap := make(map[string]cindySession)
@@ -331,6 +358,9 @@ func (s *CindyScanner) scanSingleDB(dbPath, defaultProject string) ([]Conversati
 			modDisp := FormatModelName(rawModel)
 
 			targetEngine := ResolveCindyEngine(meta.agentKind, rawModel)
+			if piSessions[sItem.sid] || strings.Contains(strings.ToLower(meta.agentKind), "pi") {
+				targetEngine = "pi"
+			}
 			targetRole := GetEngineRole(targetEngine)
 
 			var inT, outT, cacheT int64
@@ -399,7 +429,9 @@ func (s *CindyScanner) scanSingleDB(dbPath, defaultProject string) ([]Conversati
 
 			title := strings.TrimSpace(meta.title)
 			if title == "" {
-				if targetEngine == "claude" {
+				if targetEngine == "pi" {
+					title = fmt.Sprintf("Pi 任务 #%s", sItem.sid[:8])
+				} else if targetEngine == "claude" {
 					title = fmt.Sprintf("Claude 任务 #%s", sItem.sid[:8])
 				} else {
 					title = fmt.Sprintf("Codex 任务 #%s", sItem.sid[:8])
@@ -499,6 +531,9 @@ func (s *CindyScanner) scanSingleDB(dbPath, defaultProject string) ([]Conversati
 			rawModel := staticRaw
 			modDisp := FormatModelName(rawModel)
 			targetEngine := ResolveCindyEngine(meta.agentKind, rawModel)
+			if piSessions[sid] || strings.Contains(strings.ToLower(meta.agentKind), "pi") {
+				targetEngine = "pi"
+			}
 			targetRole := GetEngineRole(targetEngine)
 
 			var inT, outT, cacheT int64
@@ -546,7 +581,9 @@ func (s *CindyScanner) scanSingleDB(dbPath, defaultProject string) ([]Conversati
 
 			title := strings.TrimSpace(meta.title)
 			if title == "" {
-				if targetEngine == "claude" {
+				if targetEngine == "pi" {
+					title = fmt.Sprintf("Pi 任务 #%s", sid[:8])
+				} else if targetEngine == "claude" {
 					title = fmt.Sprintf("Claude 任务 #%s", sid[:8])
 				} else {
 					title = fmt.Sprintf("Codex 任务 #%s", sid[:8])

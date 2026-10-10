@@ -740,6 +740,9 @@ func (d *DB) SaveBatch(convs []collector.Conversation, steps []collector.StepRec
 		defer stmt.Close()
 
 		for _, c := range convs {
+			_, _ = tx.Exec("DELETE FROM conversations WHERE conversation_id = ? AND agent_type != ?", c.ConversationID, c.AgentType)
+			_, _ = tx.Exec("DELETE FROM step_records WHERE conversation_id = ? AND agent_type != ?", c.ConversationID, c.AgentType)
+
 			_, err = stmt.Exec(
 				c.ID, c.ConversationID, c.AgentType, c.ModelName, c.ModelDisplayName,
 				c.Title, c.Preview, c.StepCount, c.LastModified,

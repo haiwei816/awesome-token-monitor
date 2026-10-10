@@ -15,12 +15,18 @@ type PiScanner struct {
 	piPaths []string
 }
 
-func NewPiScanner(homeDir string) *PiScanner {
+func NewPiScanner(homeDir, appData string) *PiScanner {
+	if appData == "" {
+		appData = filepath.Join(homeDir, "AppData", "Roaming")
+	}
 	return &PiScanner{
 		piPaths: []string{
-			filepath.Join(homeDir, "AppData", "Roaming", "Cindy", "pi-agent-home"),
-			filepath.Join(homeDir, "AppData", "Roaming", "CindyGlobal", "pi-agent-home"),
+			filepath.Join(homeDir, ".pi", "agent", "sessions"),
 			filepath.Join(homeDir, ".pi", "sessions"),
+			filepath.Join(appData, "Cindy", "pi-agent-home", "sessions"),
+			filepath.Join(appData, "CindyGlobal", "pi-agent-home", "sessions"),
+			filepath.Join(appData, "Cindy", "pi-agent-home"),
+			filepath.Join(appData, "CindyGlobal", "pi-agent-home"),
 		},
 	}
 }
