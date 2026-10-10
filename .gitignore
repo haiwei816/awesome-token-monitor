@@ -1,0 +1,28 @@
+# Binaries & Executables
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# SQLite Database & Caches (contains user local session metadata)
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Python bytecode & temporary files
+__pycache__/
+*.py[cod]
+*$py.class
+scratch_*.py
+test_*.py
+
+# OS & Editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo

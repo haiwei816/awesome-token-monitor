@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>通用 AI Agent Token & 模型监控大盘</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <!-- Top Header -->
+    <header>
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+            <polyline points="2 17 12 22 22 17"/>
+            <polyline points="2 12 12 17 22 12"/>
+          </svg>
+        </div>
+        <div class="brand-title">
+          <h1>Universal AI Agent Token & 模型监控中心</h1>
+          <p>全平台本地遥测大盘: Antigravity · Cindy (国际/国内) · Codex · WorkBuddy · Qoder</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <div class="live-indicator">
+          <span class="pulse-dot"></span>
+          <span id="liveStatusText">实时同步中</span>
+        </div>
+
+        <!-- Date Filter -->
+        <select id="dateFilterSelect" class="select-control" title="按日期筛选记录">
+          <option value="2026-10-10" selected>📅 今日 (2026-10-10) [默认]</option>
+          <option value="all">🌐 全部历史天数 (All Time)</option>
+        </select>
+
+        <!-- Model Filter -->
+        <select id="modelFilterSelect" class="select-control" title="按模型型号筛选">
+          <option value="all" selected>🎯 全部模型型号 (All Models)</option>
+        </select>
+
+        <!-- Auto Refresh -->
+        <select id="autoRefreshSelect" class="select-control" title="自动刷新频率">
+          <option value="15" selected>自动刷新: 15秒</option>
+          <option value="30">自动刷新: 30秒</option>
+          <option value="60">自动刷新: 60秒</option>
+          <option value="0">自动刷新: 关闭</option>
+        </select>
+
+        <button id="btnSync" class="btn btn-primary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+          立即同步
+        </button>
+
+        <button id="btnExport" class="btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          导出报表
+        </button>
+      </div>
+    </header>
+
+    <!-- Platform Selector Bar -->
+    <div class="agent-nav-bar">
+      <div class="agent-tab active" data-agent="all">
+        <span class="agent-icon">🌐</span>
+        <span class="agent-name">全部 Agent</span>
+        <span class="agent-pill" id="pillTotalAll">--</span>
+      </div>
+      <div class="agent-tab" data-agent="codex">
+        <span class="agent-icon">🧠</span>
+        <span class="agent-name">Codex</span>
+        <span class="agent-pill" id="pillTotalCodex">--</span>
+      </div>
+      <div class="agent-tab" data-agent="claude">
+        <span class="agent-icon">🟣</span>
+        <span class="agent-name">Claude Code</span>
+        <span class="agent-pill" id="pillTotalClaude">--</span>
+      </div>
+      <div class="agent-tab" data-agent="pi">
+        <span class="agent-icon">🥧</span>
+        <span class="agent-name">Pi Agent</span>
+        <span class="agent-pill" id="pillTotalPi">--</span>
+      </div>
+      <div class="agent-tab" data-agent="qoder">
+        <span class="agent-icon">⚡</span>
+        <span class="agent-name">Qoder</span>
+        <span class="agent-pill" id="pillTotalQoder">--</span>
+      </div>
+      <div class="agent-tab" data-agent="antigravity">
+        <span class="agent-icon">🛰️</span>
+        <span class="agent-name">Antigravity</span>
+        <span class="agent-pill" id="pillTotalAg">--</span>
+      </div>
+      <div class="agent-tab" data-agent="workbuddy">
+        <span class="agent-icon">💼</span>
+        <span class="agent-name">WorkBuddy</span>
+        <span class="agent-pill" id="pillTotalWb">--</span>
+      </div>
+      <div class="agent-tab" data-agent="zcode">
+        <span class="agent-icon">🔷</span>
+        <span class="agent-name">ZCode</span>
+        <span class="agent-pill" id="pillTotalZcode">--</span>
+      </div>
+    </div>
+
+    <!-- Top KPI Cards -->
+    <section class="kpi-grid">
+      <!-- 1. Total Tokens -->
+      <div class="kpi-card" style="--card-accent: #6366f1;">
+        <div class="kpi-header">
+          <span class="kpi-title">Token 消耗总量 (In + Out)</span>
+          <span class="kpi-badge" id="kpiTodayTotalBadge">+0 今日</span>
+        </div>
+        <div class="kpi-value" id="valTotalTokens">--</div>
+        <div class="kpi-sub">
+          <span>精确计:</span>
+          <span class="highlight" id="valTotalTokensRaw">--</span>
+          <span>Tokens</span>
+        </div>
+      </div>
+
+      <!-- 2. Input Tokens -->
+      <div class="kpi-card" style="--card-accent: #3b82f6;">
+        <div class="kpi-header">
+          <span class="kpi-title">模型输入 (Prompt Input)</span>
+          <span class="kpi-badge" id="valInputRatio">--%</span>
+        </div>
+        <div class="kpi-value" id="valInputTokens">--</div>
+        <div class="kpi-sub">
+          <span>今日输入:</span>
+          <span class="highlight" id="valTodayInput">--</span>
+        </div>
+      </div>
+
+      <!-- 3. Output Tokens -->
+      <div class="kpi-card" style="--card-accent: #ec4899;">
+        <div class="kpi-header">
+          <span class="kpi-title">模型输出 (Generation)</span>
+          <span class="kpi-badge" id="valOutputRatio">--%</span>
+        </div>
+        <div class="kpi-value" id="valOutputTokens">--</div>
+        <div class="kpi-sub">
+          <span>今日输出:</span>
+          <span class="highlight" id="valTodayOutput">--</span>
+          <span>(含思维链)</span>
+        </div>
+      </div>
+
+      <!-- 4. Cache Read Tokens -->
+      <div class="kpi-card" style="--card-accent: #10b981;">
+        <div class="kpi-header">
+          <span class="kpi-title">Prompt 缓存命中 (Cache)</span>
+          <span class="kpi-badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981;" id="valCacheHitRate">--% 命中</span>
+        </div>
+        <div class="kpi-value" id="valCacheTokens">--</div>
+        <div class="kpi-sub">
+          <span>节省重复计算:</span>
+          <span class="highlight" style="color: #10b981;" id="valCacheRatioDesc">--</span>
+        </div>
+      </div>
+
+      <!-- 5. Active Models -->
+      <div class="kpi-card" style="--card-accent: #f59e0b;">
+        <div class="kpi-header">
+          <span class="kpi-title">涉及模型型号 (Models)</span>
+          <span class="kpi-badge" id="valModelsCount">0 种型号</span>
+        </div>
+        <div class="kpi-value" id="valPrimaryModel">--</div>
+        <div class="kpi-sub">
+          <span>主力模型消耗:</span>
+          <span class="highlight" style="color: #f59e0b;" id="valPrimaryModelTokens">--</span>
+        </div>
+      </div>
+
+      <!-- 6. Conversations & Steps -->
+      <div class="kpi-card" style="--card-accent: #8b5cf6;">
+        <div class="kpi-header">
+          <span class="kpi-title">会话 / 交互轮次</span>
+          <span class="kpi-badge" id="valAgentTypeBadge">全平台</span>
+        </div>
+        <div class="kpi-value" id="valConversations">--</div>
+        <div class="kpi-sub">
+          <span>总计:</span>
+          <span class="highlight" id="valTotalSteps">0</span>
+          <span>轮 | 单轮均值:</span>
+          <span class="highlight" id="valAvgStepTokens">0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Daily Timeline Ledger Cards (按天数区分记录) -->
+    <section class="card" style="margin-bottom: 24px;">
+      <div class="card-header">
+        <div class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          按天归档时间流 (Daily Ledger Timeline)
+        </div>
+        <span style="font-size: 0.8rem; color: var(--text-dim);" id="dailyCountBadge">点击日期卡片可一键筛选当天记录</span>
+      </div>
+      <div class="daily-cards-scroll" id="dailyCardsContainer">
+        <!-- Populated by JS -->
+      </div>
+    </section>
+
+    <!-- Visual Charts & Models Breakdown Row -->
+    <section class="charts-grid">
+      <!-- Main Trend Chart -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><path d="M3 3v18h18M18 9l-5 5-4-4-6 6"/></svg>
+            Token 消耗与缓存走势
+          </div>
+          <div class="tab-group" id="trendGranularityTabs">
+            <button class="tab-btn active" data-granularity="day">按天统计</button>
+            <button class="tab-btn" data-granularity="hour">按小时统计</button>
+          </div>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="trendChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Models Breakdown List -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+            模型型号排行榜 (Top Models)
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <button id="btnClearModelFilter" class="btn btn-sm" style="display: none; padding: 2px 8px; font-size: 0.75rem; background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #fbbf24; border-radius: 4px; cursor: pointer;" title="点击取消筛选，返回全部模型">
+              ✕ 返回全部模型
+            </button>
+            <span style="font-size: 0.8rem; color: var(--text-dim);" id="modelCountBadge">--</span>
+          </div>
+        </div>
+        <div class="project-list" id="modelsList">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- Unified Conversations Explorer Table -->
+    <section class="card">
+      <div class="table-header-bar">
+        <div class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          多 Agent 会话明细与模型追踪
+        </div>
+
+        <div class="table-controls">
+          <!-- Search Input -->
+          <div class="search-input-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" class="search-input" placeholder="搜索会话标题 / 模型 / 日期 / ID...">
+          </div>
+
+          <!-- Sort Select -->
+          <select id="sortSelect" class="select-control">
+            <option value="total_tokens" selected>按总 Token 排序</option>
+            <option value="date">按日期降序 排序</option>
+            <option value="input_tokens">按输入 Token 排序</option>
+            <option value="output_tokens">按输出 Token 排序</option>
+            <option value="cache_tokens">按缓存命中 排序</option>
+            <option value="step_count">按交互轮次 排序</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Table Container -->
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>日期</th>
+              <th>Agent 平台</th>
+              <th>模型型号 (Model)</th>
+              <th style="min-width: 260px;">会话名称 / ID</th>
+              <th>项目/路径</th>
+              <th>轮次</th>
+              <th>缓存 (Cache)</th>
+              <th>输入 / 输出 Tokens</th>
+              <th style="min-width: 130px;">总 Tokens 消耗</th>
+              <th style="text-align: right;">操作</th>
+            </tr>
+          </thead>
+          <tbody id="conversationTableBody">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="pagination">
+        <span id="pageInfo">第 1 页</span>
+        <button id="btnPrevPage" class="btn" style="padding: 4px 10px;" disabled>上一页</button>
+        <button id="btnNextPage" class="btn" style="padding: 4px 10px;" disabled>下一页</button>
+      </div>
+    </section>
+  </div>
+
+  <!-- Detail Drawer -->
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <div class="drawer" id="conversationDrawer">
+    <div class="drawer-header">
+      <div class="drawer-title-area">
+        <h2 id="drawerTitle">会话详情</h2>
+        <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px; flex-wrap: wrap;">
+          <span id="drawerDateBadge" class="badge badge-project"></span>
+          <span id="drawerAgentBadge" class="badge"></span>
+          <span id="drawerModelBadge" class="badge badge-model"></span>
+          <span style="font-size: 0.75rem; color: var(--text-dim); font-family: monospace;" id="drawerCid"></span>
+        </div>
+      </div>
+      <button class="drawer-close" id="btnDrawerClose">&times;</button>
+    </div>
+
+    <div class="drawer-body">
+      <!-- Drawer KPI Summary -->
+      <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 0;">
+        <div class="kpi-card" style="padding: 12px;">
+          <div class="kpi-title" style="font-size: 0.75rem;">总 Token</div>
+          <div class="kpi-value" style="font-size: 1.25rem;" id="drawerTotalTokens">--</div>
+        </div>
+        <div class="kpi-card" style="padding: 12px;">
+          <div class="kpi-title" style="font-size: 0.75rem;">缓存命中率</div>
+          <div class="kpi-value" style="font-size: 1.25rem; color: #10b981;" id="drawerCacheRate">--%</div>
+        </div>
+        <div class="kpi-card" style="padding: 12px;">
+          <div class="kpi-title" style="font-size: 0.75rem;">交互轮数</div>
+          <div class="kpi-value" style="font-size: 1.25rem;" id="drawerStepCount">--</div>
+        </div>
+      </div>
+
+      <!-- Context Window Growth Waterfall Chart -->
+      <div class="card" style="padding: 16px;">
+        <div class="card-title" style="font-size: 0.95rem; margin-bottom: 12px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+          单会话上下文走势与单步消耗 (Context Waterfall)
+        </div>
+        <div class="chart-wrapper" style="height: 220px;">
+          <canvas id="stepGrowthChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Subagents Section if any -->
+      <div id="drawerSubagentsSection" style="display: none;">
+        <div class="card-title" style="font-size: 0.95rem; margin-bottom: 10px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          衍生子 Agent 消耗 (Subagents)
+        </div>
+        <div id="drawerSubagentsList" class="project-list"></div>
+      </div>
+
+      <!-- Steps Breakdown Table -->
+      <div>
+        <div class="card-title" style="font-size: 0.95rem; margin-bottom: 10px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          逐轮交互流水记录 (Step Log)
+        </div>
+        <div class="table-container" style="max-height: 360px;">
+          <table class="step-table">
+            <thead>
+              <tr>
+                <th>Step</th>
+                <th>模型</th>
+                <th>输入 (Context)</th>
+                <th>缓存命中</th>
+                <th>输出 (Output)</th>
+                <th>工具</th>
+                <th>时间</th>
+              </tr>
+            </thead>
+            <tbody id="drawerStepsBody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
