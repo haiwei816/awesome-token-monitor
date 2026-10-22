@@ -236,6 +236,11 @@
             模型型号排行榜 (Top Models)
           </div>
           <div style="display: flex; align-items: center; gap: 8px;">
+            <div class="tab-group" id="modelSortTabs">
+              <button class="tab-btn active" data-metric="total_tokens">总消耗</button>
+              <button class="tab-btn" data-metric="output_tokens">模型输出</button>
+              <button class="tab-btn" data-metric="input_tokens">输入</button>
+            </div>
             <button id="btnClearModelFilter" class="btn btn-sm" style="display: none; padding: 2px 8px; font-size: 0.75rem; background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #fbbf24; border-radius: 4px; cursor: pointer;" title="点击取消筛选，返回全部模型">
               ✕ 返回全部模型
             </button>

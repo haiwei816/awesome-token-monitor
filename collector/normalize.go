@@ -60,6 +60,12 @@ func FormatModelName(rawName string) string {
 	if strings.Contains(lower, "kimi-k3") || strings.Contains(lower, "kimi") {
 		return "Kimi K3.1"
 	}
+	if strings.Contains(lower, "claude-haiku-5-5") || strings.Contains(lower, "claude-haiku-5.5") || strings.Contains(lower, "haiku") {
+		return "Claude Haiku 5.5"
+	}
+	if strings.Contains(lower, "step-5") || strings.Contains(lower, "step_5") {
+		return "Step 5 Preview"
+	}
 	if strings.Contains(lower, "claude-opus-5-5") || strings.Contains(lower, "claude-opus-5.5") {
 		return "Claude Opus 5.5"
 	}
@@ -80,6 +86,15 @@ func FormatModelName(rawName string) string {
 	}
 	if strings.Contains(lower, "gpt-image-2") {
 		return "GPT-IMAGE-2"
+	}
+	if strings.Contains(lower, "gpt-5.6-sol") || strings.Contains(lower, "gpt-5-6-sol") {
+		return "GPT-5.6 Sol"
+	}
+	if strings.Contains(lower, "seed-2") || strings.Contains(lower, "bytedance-seed") {
+		return "Seed 2.1 Pro"
+	}
+	if strings.Contains(lower, "sensenova") {
+		return "SenseNova 6.8 Flash Lite"
 	}
 	if strings.Contains(lower, "space-bunny") {
 		return "Space Bunny"

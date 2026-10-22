@@ -13,6 +13,8 @@ let currentModel = 'all';
 let currentDate = todayDateStr; // 打开的时候先只显示今天的 (默认今日)
 let currentGranularity = 'day';
 let currentSort = 'total_tokens';
+let currentModelSortMetric = 'total_tokens';
+let lastLoadedModels = [];
 let searchQuery = '';
 let currentPage = 0;
 const pageSize = 20;
@@ -164,6 +166,16 @@ function initEventListeners() {
       e.target.classList.add('active');
       currentGranularity = e.target.dataset.granularity;
       loadTrends();
+    });
+  });
+
+  // Model Ranking Sort Tabs (Total Tokens / Output Tokens / Input Tokens)
+  document.querySelectorAll('#modelSortTabs .tab-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('#modelSortTabs .tab-btn').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      currentModelSortMetric = e.target.dataset.metric || 'total_tokens';
+      renderModelsList(lastLoadedModels);
     });
   });
 
@@ -456,9 +468,9 @@ async function loadModelsList() {
     const url = `/api/summary?agent=${currentAgent}&model=all&date=${currentDate}`;
     const res = await fetch(url);
     const data = await res.json();
-    const models = data.models_breakdown || [];
-    renderModelsList(models);
-    updateModelSelectOptions(models);
+    lastLoadedModels = data.models_breakdown || [];
+    renderModelsList(lastLoadedModels);
+    updateModelSelectOptions(lastLoadedModels);
   } catch (err) {
     console.error("Failed to load models list:", err);
   }
@@ -479,7 +491,7 @@ function renderModelsList(models) {
   }
 
   if (countEl) {
-    countEl.textContent = `共 ${models.length} 种在用模型`;
+    countEl.textContent = `共 ${models ? models.length : 0} 种在用模型`;
   }
   listEl.innerHTML = '';
 
@@ -488,11 +500,19 @@ function renderModelsList(models) {
     return;
   }
 
-  const maxTokens = Math.max(...models.map(m => m.total_tokens), 1);
+  // 按照选定的指标降序排序 (支持 总消耗 | 模型输出 | 输入)
+  const sorted = [...models].sort((a, b) => {
+    const valA = Number(a[currentModelSortMetric] || 0);
+    const valB = Number(b[currentModelSortMetric] || 0);
+    return valB - valA;
+  });
 
-  models.forEach((m, idx) => {
+  const maxVal = Math.max(...sorted.map(m => Number(m[currentModelSortMetric] || 0)), 1);
+
+  sorted.forEach((m, idx) => {
     const isSelected = (currentModel === m.model_display_name);
-    const percent = ((m.total_tokens / maxTokens) * 100).toFixed(1);
+    const curVal = Number(m[currentModelSortMetric] || 0);
+    const percent = Math.min(100, Math.max(2, ((curVal / maxVal) * 100))).toFixed(1);
     const item = document.createElement('div');
     item.className = `project-item ${isSelected ? 'active' : ''}`;
     item.style.cursor = 'pointer';
@@ -525,19 +545,32 @@ function renderModelsList(models) {
       ? '<span class="model-active-pill">✓ 已筛选 (点击取消)</span>' 
       : '';
 
+    let primaryValHtml = '';
+    let subStatsHtml = '';
+
+    if (currentModelSortMetric === 'output_tokens') {
+      primaryValHtml = `<span style="font-weight: 700; color: #ec4899;">${formatTokens(m.output_tokens)}</span> <span style="font-size: 0.72rem; color: #f472b6;">输出</span>`;
+      subStatsHtml = `<span>总: ${formatTokens(m.total_tokens)}</span><span>入: ${formatTokens(m.input_tokens)} | 缓: ${formatTokens(m.cache_tokens)} · ${m.conv_count} 会话</span>`;
+    } else if (currentModelSortMetric === 'input_tokens') {
+      primaryValHtml = `<span style="font-weight: 700; color: #3b82f6;">${formatTokens(m.input_tokens)}</span> <span style="font-size: 0.72rem; color: #93c5fd;">输入</span>`;
+      subStatsHtml = `<span>总: ${formatTokens(m.total_tokens)}</span><span>出: ${formatTokens(m.output_tokens)} | 缓: ${formatTokens(m.cache_tokens)} · ${m.conv_count} 会话</span>`;
+    } else {
+      primaryValHtml = `<span style="font-weight: 700; color: #fff;">${formatTokens(m.total_tokens)}</span>`;
+      subStatsHtml = `<span>${m.conv_count} 个会话</span><span>出: ${formatTokens(m.output_tokens)} | 入: ${formatTokens(m.input_tokens)} | 缓: ${formatTokens(m.cache_tokens)}</span>`;
+    }
+
     item.innerHTML = `
       <div class="project-item-header">
         <span style="font-weight: 600; color: #fbbf24; display: flex; align-items: center; gap: 4px;">
           ${rankBadge} 🤖 ${m.model_display_name} ${activePill}
         </span>
-        <span style="font-weight: 700; color: #fff;">${formatTokens(m.total_tokens)}</span>
+        <div>${primaryValHtml}</div>
       </div>
       <div class="project-progress-bar">
         <div class="project-progress-fill" style="width: ${percent}%; background: linear-gradient(90deg, #f59e0b, #ec4899);"></div>
       </div>
       <div class="project-stats">
-        <span>${m.conv_count} 个会话</span>
-        <span>入: ${formatTokens(m.input_tokens)} | 出: ${formatTokens(m.output_tokens)} | 缓: ${formatTokens(m.cache_tokens)}</span>
+        ${subStatsHtml}
       </div>
     `;
     listEl.appendChild(item);

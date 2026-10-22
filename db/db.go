@@ -217,13 +217,13 @@ func (d *DB) GetSummary(agentFilter, modelFilter, dateFilter string) (*collector
 		SELECT 
 			agent_type,
 			COUNT(DISTINCT conversation_id),
-			COALESCE(SUM(total_tokens), 0),
+			COALESCE(SUM(total_tokens), 0) as tot_tokens,
 			COALESCE(SUM(total_input_tokens), 0),
 			COALESCE(SUM(total_output_tokens), 0),
 			COALESCE(SUM(total_cache_tokens), 0)
 		FROM conversations %s
 		GROUP BY agent_type
-		ORDER BY total_tokens DESC;
+		ORDER BY tot_tokens DESC;
 	`, whereSQL)
 
 	aRows, err := d.conn.Query(agentBreakdownQuery, args...)
@@ -242,13 +242,13 @@ func (d *DB) GetSummary(agentFilter, modelFilter, dateFilter string) (*collector
 		SELECT 
 			model_display_name,
 			COUNT(DISTINCT conversation_id),
-			COALESCE(SUM(total_tokens), 0),
+			COALESCE(SUM(total_tokens), 0) as tot_tokens,
 			COALESCE(SUM(total_input_tokens), 0),
 			COALESCE(SUM(total_output_tokens), 0),
 			COALESCE(SUM(total_cache_tokens), 0)
 		FROM conversations %s
 		GROUP BY model_display_name
-		ORDER BY total_tokens DESC;
+		ORDER BY tot_tokens DESC;
 	`, whereSQL)
 
 	mRows, err := d.conn.Query(modelBreakdownQuery, args...)
@@ -556,14 +556,14 @@ func (d *DB) GetModelsList() ([]collector.ModelListItem, error) {
 		SELECT 
 			model_display_name,
 			COUNT(DISTINCT conversation_id) as conv_count,
-			COALESCE(SUM(total_tokens), 0) as total_tokens,
+			COALESCE(SUM(total_tokens), 0) as tot_tokens,
 			COALESCE(SUM(total_input_tokens), 0) as input_tokens,
 			COALESCE(SUM(total_output_tokens), 0) as output_tokens,
 			COALESCE(SUM(total_cache_tokens), 0) as cache_tokens
 		FROM conversations
 		WHERE model_display_name != ''
 		GROUP BY model_display_name
-		ORDER BY total_tokens DESC
+		ORDER BY tot_tokens DESC
 	`)
 	if err != nil {
 		return nil, err
@@ -716,6 +716,19 @@ func (d *DB) SaveBatch(convs []collector.Conversation, steps []collector.StepRec
 	}
 	defer tx.Rollback()
 
+	// Purge existing records for conversations in this batch to prevent stale splits or duplicate rows
+	cidSet := make(map[string]bool)
+	for _, c := range convs {
+		cidSet[c.ConversationID] = true
+	}
+	for _, s := range steps {
+		cidSet[s.ConversationID] = true
+	}
+	for cid := range cidSet {
+		_, _ = tx.Exec("DELETE FROM conversations WHERE conversation_id = ?;", cid)
+		_, _ = tx.Exec("DELETE FROM step_records WHERE conversation_id = ?;", cid)
+	}
+
 	if len(steps) > 0 {
 		stmt, err := tx.Prepare(`
 			INSERT OR REPLACE INTO step_records
@@ -755,9 +768,6 @@ func (d *DB) SaveBatch(convs []collector.Conversation, steps []collector.StepRec
 		defer stmt.Close()
 
 		for _, c := range convs {
-			_, _ = tx.Exec("DELETE FROM conversations WHERE conversation_id = ? AND agent_type != ?", c.ConversationID, c.AgentType)
-			_, _ = tx.Exec("DELETE FROM step_records WHERE conversation_id = ? AND agent_type != ?", c.ConversationID, c.AgentType)
-
 			_, err = stmt.Exec(
 				c.ID, c.ConversationID, c.AgentType, c.ModelName, c.ModelDisplayName,
 				c.Title, c.Preview, c.StepCount, c.LastModified,
