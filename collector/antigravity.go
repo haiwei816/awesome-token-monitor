@@ -4,15 +4,29 @@ import (
 	"bufio"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
+	"sort"
+	"strconv"
 	"strings"
 
 	_ "modernc.org/sqlite"
 )
 
+var (
+	regexpModelEnum = regexp.MustCompile(`model_enum\x12.([A-Za-z0-9_]+)`)
+	regexpLastStep  = regexp.MustCompile(`last_step_index\x12.([0-9]+)`)
+)
+
 type AntigravityScanner struct {
 	BaseDir string
+}
+
+type stepModelRange struct {
+	lastStepIndex int
+	modelName     string
 }
 
 func (s *AntigravityScanner) Scan(scanStates map[string][2]float64) ([]Conversation, []StepRecord, map[string][2]float64, error) {
@@ -32,7 +46,15 @@ func (s *AntigravityScanner) Scan(scanStates map[string][2]float64) ([]Conversat
 				if len(parts) > 1 {
 					raw := strings.Trim(strings.TrimSpace(parts[1]), `"`)
 					lowerRaw := strings.ToLower(raw)
-					if strings.Contains(lowerRaw, "m318") || strings.Contains(lowerRaw, "placeholder") {
+					if strings.Contains(lowerRaw, "m417") || strings.Contains(lowerRaw, "m408") || strings.Contains(lowerRaw, "argon") || strings.Contains(lowerRaw, "gemini-4") {
+						defaultModel = "gemini-4-argon"
+					} else if strings.Contains(lowerRaw, "m401") || strings.Contains(lowerRaw, "opus-5") {
+						defaultModel = "claude-opus-5-5"
+					} else if strings.Contains(lowerRaw, "m26") || strings.Contains(lowerRaw, "opus-4") {
+						defaultModel = "claude-opus-4-6"
+					} else if strings.Contains(lowerRaw, "m35") || strings.Contains(lowerRaw, "m36") || strings.Contains(lowerRaw, "sonnet") {
+						defaultModel = "claude-sonnet-4-6"
+					} else if strings.Contains(lowerRaw, "m318") || strings.Contains(lowerRaw, "m322") || strings.Contains(lowerRaw, "placeholder") {
 						defaultModel = "gemini-3.8-flash"
 					} else if raw != "" {
 						defaultModel = raw
@@ -105,12 +127,15 @@ func (s *AntigravityScanner) Scan(scanStates map[string][2]float64) ([]Conversat
 			continue
 		}
 
+		// Load step-level model ranges for this conversation
+		ranges := s.loadStepModelRanges(meta.cid, meta.agentName, defaultModel)
+
 		f, err := os.Open(tFile)
 		if err != nil {
 			continue
 		}
 
-		dateGroups := make(map[string][]StepRecord)
+		groupMap := make(map[string][]StepRecord)
 		scanner := bufio.NewScanner(f)
 		buf := make([]byte, 0, 1024*1024)
 		scanner.Buffer(buf, 10*1024*1024)
@@ -131,6 +156,11 @@ func (s *AntigravityScanner) Scan(scanStates map[string][2]float64) ([]Conversat
 				continue
 			}
 
+			stepIdx := 0
+			if v, ok := item["step_index"].(float64); ok {
+				stepIdx = int(v)
+			}
+
 			created, _ := item["created_at"].(string)
 			dBucket := ExtractDateBucket(created)
 
@@ -145,10 +175,8 @@ func (s *AntigravityScanner) Scan(scanStates map[string][2]float64) ([]Conversat
 				cacheTokens = int64(v)
 			}
 
-			stepIdx := 0
-			if v, ok := item["step_index"].(float64); ok {
-				stepIdx = int(v)
-			}
+			stepModel := getModelForStep(ranges, stepIdx, defaultModel)
+			modDisp := FormatModelName(stepModel)
 
 			source, _ := item["source"].(string)
 			stType, _ := item["type"].(string)
@@ -177,8 +205,8 @@ func (s *AntigravityScanner) Scan(scanStates map[string][2]float64) ([]Conversat
 				AgentType:        "antigravity",
 				ConversationID:   meta.cid,
 				StepIndex:        stepIdx,
-				ModelName:        defaultModel,
-				ModelDisplayName: FormatModelName(defaultModel),
+				ModelName:        stepModel,
+				ModelDisplayName: modDisp,
 				Source:           source,
 				StepType:         stType,
 				Status:           status,
@@ -191,7 +219,9 @@ func (s *AntigravityScanner) Scan(scanStates map[string][2]float64) ([]Conversat
 				ToolNames:        strings.Join(toolNamesList, ","),
 				ThinkingLength:   len(thinking),
 			}
-			dateGroups[dBucket] = append(dateGroups[dBucket], step)
+
+			groupKey := dBucket + "___" + stepModel
+			groupMap[groupKey] = append(groupMap[groupKey], step)
 		}
 		f.Close()
 
@@ -208,11 +238,16 @@ func (s *AntigravityScanner) Scan(scanStates map[string][2]float64) ([]Conversat
 			projID = "outside-of-project"
 		}
 
-		for dBucket, steps := range dateGroups {
+		for groupKey, steps := range groupMap {
 			if len(steps) == 0 {
 				continue
 			}
 			allSteps = append(allSteps, steps...)
+
+			parts := strings.Split(groupKey, "___")
+			dBucket := parts[0]
+			modelName := parts[1]
+			modDisp := FormatModelName(modelName)
 
 			var cIn, cOut, cCache int64
 			for _, s := range steps {
@@ -223,14 +258,14 @@ func (s *AntigravityScanner) Scan(scanStates map[string][2]float64) ([]Conversat
 
 			firstT := steps[0].CreatedAt
 			lastT := steps[len(steps)-1].CreatedAt
-			cID := meta.cid + "_" + dBucket
+			cID := fmt.Sprintf("%s_%s_%s", meta.cid, dBucket, modelName)
 
 			conv := Conversation{
 				ID:                   cID,
 				ConversationID:       meta.cid,
 				AgentType:            "antigravity",
-				ModelName:            defaultModel,
-				ModelDisplayName:     FormatModelName(defaultModel),
+				ModelName:            modelName,
+				ModelDisplayName:     modDisp,
 				Title:                title,
 				Preview:              meta.preview,
 				StepCount:            len(steps),
@@ -256,4 +291,94 @@ func (s *AntigravityScanner) Scan(scanStates map[string][2]float64) ([]Conversat
 	}
 
 	return allConvs, allSteps, updatedScanStates, nil
+}
+
+// loadStepModelRanges reads conversations/<cid>.db (gen_metadata) to get step ranges and exact model enums
+func (s *AntigravityScanner) loadStepModelRanges(cid, agentName, defaultModel string) []stepModelRange {
+	if agentName == "image-generator" {
+		return []stepModelRange{{lastStepIndex: 999999999, modelName: "gemini-3.1-flash-image"}}
+	}
+
+	convDBPath := filepath.Join(s.BaseDir, "conversations", cid+".db")
+	if _, err := os.Stat(convDBPath); os.IsNotExist(err) {
+		return []stepModelRange{{lastStepIndex: 999999999, modelName: defaultModel}}
+	}
+
+	db, err := sql.Open("sqlite", convDBPath+"?mode=ro")
+	if err != nil {
+		return []stepModelRange{{lastStepIndex: 999999999, modelName: defaultModel}}
+	}
+	defer db.Close()
+
+	rows, err := db.Query("SELECT idx, data FROM gen_metadata WHERE data IS NOT NULL ORDER BY idx ASC")
+	if err != nil {
+		return []stepModelRange{{lastStepIndex: 999999999, modelName: defaultModel}}
+	}
+	defer rows.Close()
+
+	var ranges []stepModelRange
+	for rows.Next() {
+		var rowIdx int
+		var blob []byte
+		if err := rows.Scan(&rowIdx, &blob); err != nil || len(blob) == 0 {
+			continue
+		}
+
+		lastIdx := rowIdx
+		if m := regexpLastStep.FindSubmatch(blob); len(m) > 1 {
+			if val, err := strconv.Atoi(string(m[1])); err == nil {
+				lastIdx = val
+			}
+		}
+
+		mName := defaultModel
+		if m := regexpModelEnum.FindSubmatch(blob); len(m) > 1 {
+			enumVal := string(m[1])
+			switch enumVal {
+			case "MODEL_PLACEHOLDER_M318", "MODEL_PLACEHOLDER_M319", "MODEL_PLACEHOLDER_M322", "MODEL_PLACEHOLDER_M320", "MODEL_PLACEHOLDER_M299":
+				mName = "gemini-3.8-flash"
+			case "MODEL_PLACEHOLDER_M417", "MODEL_PLACEHOLDER_M408":
+				mName = "gemini-4-argon"
+			case "MODEL_PLACEHOLDER_M401":
+				mName = "claude-opus-5-5"
+			case "MODEL_PLACEHOLDER_M26":
+				mName = "claude-opus-4-6"
+			case "MODEL_PLACEHOLDER_M35", "MODEL_PLACEHOLDER_M36":
+				mName = "claude-sonnet-4-6"
+			default:
+				if strings.Contains(enumVal, "GPT_OSS") {
+					mName = "gpt-oss-120b"
+				} else {
+					mName = enumVal
+				}
+			}
+		}
+
+		ranges = append(ranges, stepModelRange{
+			lastStepIndex: lastIdx,
+			modelName:     mName,
+		})
+	}
+
+	if len(ranges) == 0 {
+		return []stepModelRange{{lastStepIndex: 999999999, modelName: defaultModel}}
+	}
+
+	sort.Slice(ranges, func(i, j int) bool {
+		return ranges[i].lastStepIndex < ranges[j].lastStepIndex
+	})
+
+	return ranges
+}
+
+func getModelForStep(ranges []stepModelRange, stepIdx int, fallback string) string {
+	for _, r := range ranges {
+		if stepIdx <= r.lastStepIndex {
+			return r.modelName
+		}
+	}
+	if len(ranges) > 0 {
+		return ranges[len(ranges)-1].modelName
+	}
+	return fallback
 }
