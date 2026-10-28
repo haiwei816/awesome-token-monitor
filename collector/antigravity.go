@@ -46,15 +46,23 @@ func (s *AntigravityScanner) Scan(scanStates map[string][2]float64) ([]Conversat
 				if len(parts) > 1 {
 					raw := strings.Trim(strings.TrimSpace(parts[1]), `"`)
 					lowerRaw := strings.ToLower(raw)
-					if strings.Contains(lowerRaw, "m417") || strings.Contains(lowerRaw, "m408") || strings.Contains(lowerRaw, "argon") || strings.Contains(lowerRaw, "gemini-4") {
+					if strings.Contains(lowerRaw, "m408") || strings.Contains(lowerRaw, "m409") || strings.Contains(lowerRaw, "m410") ||
+						strings.Contains(lowerRaw, "m411") || strings.Contains(lowerRaw, "m412") || strings.Contains(lowerRaw, "m413") ||
+						strings.Contains(lowerRaw, "m417") || strings.Contains(lowerRaw, "m418") || strings.Contains(lowerRaw, "m419") ||
+						strings.Contains(lowerRaw, "argon") || strings.Contains(lowerRaw, "gemini-4") {
 						defaultModel = "gemini-4-argon"
-					} else if strings.Contains(lowerRaw, "m401") || strings.Contains(lowerRaw, "opus-5") {
+					} else if strings.Contains(lowerRaw, "m400") || strings.Contains(lowerRaw, "m401") || strings.Contains(lowerRaw, "m402") ||
+						strings.Contains(lowerRaw, "m403") || strings.Contains(lowerRaw, "m404") || strings.Contains(lowerRaw, "m405") ||
+						strings.Contains(lowerRaw, "opus-5") {
 						defaultModel = "claude-opus-5-5"
 					} else if strings.Contains(lowerRaw, "m26") || strings.Contains(lowerRaw, "opus-4") {
 						defaultModel = "claude-opus-4-6"
-					} else if strings.Contains(lowerRaw, "m35") || strings.Contains(lowerRaw, "m36") || strings.Contains(lowerRaw, "sonnet") {
+					} else if strings.Contains(lowerRaw, "m35") || strings.Contains(lowerRaw, "m36") || strings.Contains(lowerRaw, "m37") ||
+						strings.Contains(lowerRaw, "m16") || strings.Contains(lowerRaw, "sonnet") {
 						defaultModel = "claude-sonnet-4-6"
-					} else if strings.Contains(lowerRaw, "m318") || strings.Contains(lowerRaw, "m322") || strings.Contains(lowerRaw, "placeholder") {
+					} else if strings.Contains(lowerRaw, "m318") || strings.Contains(lowerRaw, "m319") || strings.Contains(lowerRaw, "m320") ||
+						strings.Contains(lowerRaw, "m322") || strings.Contains(lowerRaw, "m298") || strings.Contains(lowerRaw, "m299") ||
+						strings.Contains(lowerRaw, "m300") || strings.Contains(lowerRaw, "m124") || strings.Contains(lowerRaw, "placeholder") {
 						defaultModel = "gemini-3.8-flash"
 					} else if raw != "" {
 						defaultModel = raw
@@ -335,19 +343,30 @@ func (s *AntigravityScanner) loadStepModelRanges(cid, agentName, defaultModel st
 		if m := regexpModelEnum.FindSubmatch(blob); len(m) > 1 {
 			enumVal := string(m[1])
 			switch enumVal {
-			case "MODEL_PLACEHOLDER_M318", "MODEL_PLACEHOLDER_M319", "MODEL_PLACEHOLDER_M322", "MODEL_PLACEHOLDER_M320", "MODEL_PLACEHOLDER_M299":
+			case "MODEL_PLACEHOLDER_M124", "MODEL_PLACEHOLDER_M298", "MODEL_PLACEHOLDER_M299", "MODEL_PLACEHOLDER_M300",
+				"MODEL_PLACEHOLDER_M318", "MODEL_PLACEHOLDER_M319", "MODEL_PLACEHOLDER_M320", "MODEL_PLACEHOLDER_M322",
+				"MODEL_PLACEHOLDER_M78":
 				mName = "gemini-3.8-flash"
-			case "MODEL_PLACEHOLDER_M417", "MODEL_PLACEHOLDER_M408":
+			case "MODEL_PLACEHOLDER_M408", "MODEL_PLACEHOLDER_M409", "MODEL_PLACEHOLDER_M410", "MODEL_PLACEHOLDER_M411",
+				"MODEL_PLACEHOLDER_M412", "MODEL_PLACEHOLDER_M413", "MODEL_PLACEHOLDER_M417", "MODEL_PLACEHOLDER_M418",
+				"MODEL_PLACEHOLDER_M419":
 				mName = "gemini-4-argon"
-			case "MODEL_PLACEHOLDER_M401":
+			case "MODEL_PLACEHOLDER_M400", "MODEL_PLACEHOLDER_M401", "MODEL_PLACEHOLDER_M402", "MODEL_PLACEHOLDER_M403",
+				"MODEL_PLACEHOLDER_M404", "MODEL_PLACEHOLDER_M405":
 				mName = "claude-opus-5-5"
 			case "MODEL_PLACEHOLDER_M26":
 				mName = "claude-opus-4-6"
-			case "MODEL_PLACEHOLDER_M35", "MODEL_PLACEHOLDER_M36":
+			case "MODEL_PLACEHOLDER_M16", "MODEL_PLACEHOLDER_M35", "MODEL_PLACEHOLDER_M36", "MODEL_PLACEHOLDER_M37":
 				mName = "claude-sonnet-4-6"
+			case "MODEL_GOOGLE_GEMINI_2_5_PRO", "MODEL_PLACEHOLDER_M18", "MODEL_PLACEHOLDER_M50", "MODEL_PLACEHOLDER_M148":
+				mName = "gemini-2.5-pro"
+			case "MODEL_GOOGLE_GEMINI_2_5_FLASH", "MODEL_GOOGLE_GEMINI_2_5_FLASH_LITE", "MODEL_GOOGLE_GEMINI_2_5_FLASH_THINKING", "MODEL_PLACEHOLDER_M198":
+				mName = "gemini-2.5-flash"
 			default:
 				if strings.Contains(enumVal, "GPT_OSS") {
 					mName = "gpt-oss-120b"
+				} else if strings.Contains(enumVal, "M40") || strings.Contains(enumVal, "M41") {
+					mName = "gemini-4-argon"
 				} else {
 					mName = enumVal
 				}
