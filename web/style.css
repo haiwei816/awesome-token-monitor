@@ -567,6 +567,11 @@ header {
   padding: 4px 4px 8px;
 }
 
+#monthlyCardsShelf {
+  max-height: none;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+
 .daily-card {
   background: rgba(15, 23, 42, 0.45);
   border: 1px solid var(--border-subtle);

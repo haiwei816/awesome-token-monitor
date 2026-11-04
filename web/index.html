@@ -37,9 +37,9 @@
 
         <!-- Date Filter -->
         <select id="dateFilterSelect" class="select-control" title="按日期或月份筛选记录">
-          <option value="today" selected>📅 今日 [默认]</option>
+          <option value="all" selected>🌐 全部历史总量 (All Time)</option>
           <option value="this_month">🗓️ 本月 (This Month)</option>
-          <option value="all">🌐 全部历史天数 (All Time)</option>
+          <option value="today">📅 今日 (Today)</option>
         </select>
 
         <!-- Model Filter -->
@@ -116,24 +116,37 @@
       <!-- 1. Total Tokens -->
       <div class="kpi-card" style="--card-accent: #6366f1;">
         <div class="kpi-header">
-          <span class="kpi-title">Token 消耗总量 (In + Out)</span>
+          <span class="kpi-title" id="kpiTotalTitle">历史消耗总量 (All-Time Total)</span>
           <div style="display: flex; gap: 6px;">
             <span class="kpi-badge" id="kpiTodayTotalBadge">+0 今日</span>
             <span class="kpi-badge" id="kpiMonthTotalBadge" style="background: rgba(99, 102, 241, 0.2); color: #818cf8;">+0 本月</span>
           </div>
         </div>
         <div class="kpi-value" id="valTotalTokens">--</div>
-        <div class="kpi-sub">
+        <div class="kpi-sub" id="kpiTotalSub">
           <span>精确计:</span>
           <span class="highlight" id="valTotalTokensRaw">--</span>
           <span>Tokens</span>
-          <span style="margin: 0 4px; color: var(--border-color);">|</span>
-          <span>本月:</span>
-          <span class="highlight" style="color: #a5b4fc;" id="valMonthTokens">--</span>
         </div>
       </div>
 
-      <!-- 2. Input Tokens -->
+      <!-- 2. This Month Tokens (月度总量独立KPI) -->
+      <div class="kpi-card" style="--card-accent: #a855f7; cursor: pointer;" id="cardThisMonth" title="点击快速筛选并查看本月会话与模型">
+        <div class="kpi-header">
+          <span class="kpi-title" id="kpiMonthTitle">本月消耗总量 (2026-11)</span>
+          <span class="kpi-badge" id="kpiMonthRatioBadge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc;">占历史 --%</span>
+        </div>
+        <div class="kpi-value" style="color: #c084fc;" id="valMonthTotalTokens">--</div>
+        <div class="kpi-sub" id="kpiMonthSub">
+          <span>今日消耗:</span>
+          <span class="highlight" style="color: #34d399;" id="valTodayTokensSub">--</span>
+          <span style="margin: 0 4px; color: var(--border-color);">|</span>
+          <span>本月轮次:</span>
+          <span class="highlight" id="valMonthStepsSub">--</span>
+        </div>
+      </div>
+
+      <!-- 3. Input Tokens -->
       <div class="kpi-card" style="--card-accent: #3b82f6;">
         <div class="kpi-header">
           <span class="kpi-title">模型输入 (Prompt Input)</span>
@@ -146,7 +159,7 @@
         </div>
       </div>
 
-      <!-- 3. Output Tokens -->
+      <!-- 4. Output Tokens -->
       <div class="kpi-card" style="--card-accent: #ec4899;">
         <div class="kpi-header">
           <span class="kpi-title">模型输出 (Generation)</span>
@@ -160,11 +173,11 @@
         </div>
       </div>
 
-      <!-- 4. Cache Read Tokens -->
+      <!-- 5. Cache Read Tokens -->
       <div class="kpi-card" style="--card-accent: #10b981;">
         <div class="kpi-header">
           <span class="kpi-title">Prompt 缓存命中 (Cache)</span>
-          <span class="kpi-badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981;" id="valCacheHitRate">--% 命中</span>
+          <span class="kpi-badge" style="background: rgba(168, 85, 247, 0.2); color: #10b981;" id="valCacheHitRate">--% 命中</span>
         </div>
         <div class="kpi-value" id="valCacheTokens">--</div>
         <div class="kpi-sub">
@@ -173,7 +186,7 @@
         </div>
       </div>
 
-      <!-- 5. Active Models -->
+      <!-- 6. Active Models -->
       <div class="kpi-card" style="--card-accent: #f59e0b;">
         <div class="kpi-header">
           <span class="kpi-title">涉及模型型号 (Models)</span>
@@ -186,7 +199,7 @@
         </div>
       </div>
 
-      <!-- 6. Conversations & Steps -->
+      <!-- 7. Conversations & Steps -->
       <div class="kpi-card" style="--card-accent: #8b5cf6;">
         <div class="kpi-header">
           <span class="kpi-title">会话 / 交互轮次</span>
@@ -199,6 +212,25 @@
           <span>轮 | 单轮均值:</span>
           <span class="highlight" id="valAvgStepTokens">0</span>
         </div>
+      </div>
+    </section>
+
+    <!-- Monthly Tokens Breakdown Shelf (月度消耗总量分布概览) -->
+    <section class="card" style="margin-bottom: 24px;" id="monthlyOverviewSection">
+      <div class="card-header">
+        <div class="card-title">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          <span>月度消耗总量分布 (Monthly Tokens Overview)</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <span style="font-size: 0.8rem; color: var(--text-dim);" id="monthlyOverviewCountBadge">点击各月份卡片可一键按月筛选</span>
+          <button class="btn btn-sm" id="btnQuickAllMonths" style="padding: 3px 10px; font-size: 0.75rem;" title="查看全部历史总量">
+            🌐 查看全量汇总
+          </button>
+        </div>
+      </div>
+      <div class="daily-cards-scroll" id="monthlyCardsShelf">
+        <!-- Populated by JS -->
       </div>
     </section>
 

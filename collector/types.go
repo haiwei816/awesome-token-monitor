@@ -69,6 +69,7 @@ type SummaryResponse struct {
 	AvgTokensPerStep  int64            `json:"avg_tokens_per_step"`
 	AgentsBreakdown   []AgentBreakdown `json:"agents_breakdown"`
 	ModelsBreakdown   []ModelBreakdown `json:"models_breakdown"`
+	MonthlyBreakdown  []MonthlyRecord  `json:"monthly_breakdown,omitempty"`
 }
 
 // AgentBreakdown represents summary per agent.

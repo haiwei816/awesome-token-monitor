@@ -210,7 +210,7 @@ func (d *DB) GetSummary(agentFilter, modelFilter, dateFilter string) (*collector
 		&res.TodayCache,
 		&res.TodaySteps,
 	)
-	res.TodayTotal = res.TodayInput + res.TodayOutput
+	res.TodayTotal = res.TodayInput + res.TodayOutput + res.TodayCache
 
 	// This month stats from step_records
 	thisMonthStr := time.Now().Local().Format("2006-01")
@@ -240,7 +240,7 @@ func (d *DB) GetSummary(agentFilter, modelFilter, dateFilter string) (*collector
 		&res.MonthCache,
 		&res.MonthSteps,
 	)
-	res.MonthTotal = res.MonthInput + res.MonthOutput
+	res.MonthTotal = res.MonthInput + res.MonthOutput + res.MonthCache
 
 	// Peak context window
 	peakQuery := fmt.Sprintf(`SELECT COALESCE(MAX(input_tokens), 0) FROM step_records %s;`, whereSQL)
@@ -296,6 +296,60 @@ func (d *DB) GetSummary(agentFilter, modelFilter, dateFilter string) (*collector
 			var mb collector.ModelBreakdown
 			if err := mRows.Scan(&mb.ModelDisplayName, &mb.ConvCount, &mb.TotalTokens, &mb.InputTokens, &mb.OutputTokens, &mb.CacheTokens); err == nil {
 				res.ModelsBreakdown = append(res.ModelsBreakdown, mb)
+			}
+		}
+	}
+
+	// Monthly breakdown
+	monthlyWhere := []string{"date_bucket != ''"}
+	var monthlyArgs []interface{}
+	if agentFilter != "" && agentFilter != "all" {
+		monthlyWhere = append(monthlyWhere, "agent_type = ?")
+		monthlyArgs = append(monthlyArgs, agentFilter)
+	}
+	if modelFilter != "" && modelFilter != "all" {
+		monthlyWhere = append(monthlyWhere, "model_display_name = ?")
+		monthlyArgs = append(monthlyArgs, modelFilter)
+	}
+	monthlyWhereSQL := "WHERE " + strings.Join(monthlyWhere, " AND ")
+	monthlyQuery := fmt.Sprintf(`
+		SELECT 
+			substr(date_bucket, 1, 7) as month_bucket,
+			COUNT(DISTINCT conversation_id) as conv_count,
+			COALESCE(SUM(total_tokens), 0) as tot_tokens,
+			COALESCE(SUM(total_input_tokens), 0),
+			COALESCE(SUM(total_output_tokens), 0),
+			COALESCE(SUM(total_cache_tokens), 0),
+			COALESCE(SUM(step_records_count), 0),
+			COALESCE(GROUP_CONCAT(DISTINCT agent_type), ''),
+			COALESCE(GROUP_CONCAT(DISTINCT model_display_name), '')
+		FROM conversations
+		%s
+		GROUP BY month_bucket
+		ORDER BY month_bucket DESC;
+	`, monthlyWhereSQL)
+
+	mthRows, err := d.conn.Query(monthlyQuery, monthlyArgs...)
+	if err == nil {
+		defer mthRows.Close()
+		curMonth := time.Now().Local().Format("2006-01")
+		for mthRows.Next() {
+			var mr collector.MonthlyRecord
+			if err := mthRows.Scan(&mr.MonthBucket, &mr.ConvCount, &mr.TotalTokens, &mr.InputTokens, &mr.OutputTokens, &mr.CacheTokens, &mr.TotalSteps, &mr.Agents, &mr.Models); err == nil {
+				mr.IsCurrentMonth = (mr.MonthBucket == curMonth)
+				for _, a := range strings.Split(mr.Agents, ",") {
+					a = strings.TrimSpace(a)
+					if a != "" {
+						mr.AgentsList = append(mr.AgentsList, a)
+					}
+				}
+				for _, m := range strings.Split(mr.Models, ",") {
+					m = strings.TrimSpace(m)
+					if m != "" {
+						mr.ModelsList = append(mr.ModelsList, m)
+					}
+				}
+				res.MonthlyBreakdown = append(res.MonthlyBreakdown, mr)
 			}
 		}
 	}
