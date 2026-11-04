@@ -60,6 +60,11 @@ type SummaryResponse struct {
 	TodayCache        int64            `json:"today_cache"`
 	TodayTotal        int64            `json:"today_total"`
 	TodaySteps        int              `json:"today_steps"`
+	MonthInput        int64            `json:"month_input"`
+	MonthOutput       int64            `json:"month_output"`
+	MonthCache        int64            `json:"month_cache"`
+	MonthTotal        int64            `json:"month_total"`
+	MonthSteps        int              `json:"month_steps"`
 	PeakContextWindow int64            `json:"peak_context_window"`
 	AvgTokensPerStep  int64            `json:"avg_tokens_per_step"`
 	AgentsBreakdown   []AgentBreakdown `json:"agents_breakdown"`
@@ -100,6 +105,22 @@ type DailyRecord struct {
 	IsToday      bool     `json:"is_today"`
 	AgentsList   []string `json:"agents_list"`
 	ModelsList   []string `json:"models_list"`
+}
+
+// MonthlyRecord represents monthly aggregated usage.
+type MonthlyRecord struct {
+	MonthBucket    string   `json:"month_bucket"`
+	ConvCount      int      `json:"conv_count"`
+	TotalTokens    int64    `json:"total_tokens"`
+	InputTokens    int64    `json:"input_tokens"`
+	OutputTokens   int64    `json:"output_tokens"`
+	CacheTokens    int64    `json:"cache_tokens"`
+	TotalSteps     int      `json:"total_steps"`
+	Agents         string   `json:"agents"`
+	Models         string   `json:"models"`
+	IsCurrentMonth bool     `json:"is_current_month"`
+	AgentsList     []string `json:"agents_list"`
+	ModelsList     []string `json:"models_list"`
 }
 
 // TrendPoint represents a point on trend chart.

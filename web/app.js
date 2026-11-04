@@ -11,6 +11,9 @@ const todayDateStr = getLocalDateString();
 let currentAgent = 'all';
 let currentModel = 'all';
 let currentDate = todayDateStr; // 打开的时候先只显示今天的 (默认今日)
+let currentLedgerView = 'day';  // 'day' or 'month'
+let cachedDailyList = [];
+let cachedMonthlyList = [];
 let currentGranularity = 'day';
 let currentSort = 'total_tokens';
 let currentModelSortMetric = 'total_tokens';
@@ -159,6 +162,22 @@ function initEventListeners() {
   // Auto refresh select
   document.getElementById('autoRefreshSelect').addEventListener('change', setupAutoRefresh);
 
+  // Ledger View Tabs (Daily vs Monthly)
+  document.querySelectorAll('#ledgerViewTabs .tab-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('#ledgerViewTabs .tab-btn').forEach(b => b.classList.remove('active'));
+      e.target.classList.add('active');
+      currentLedgerView = e.target.dataset.view || 'day';
+      const titleEl = document.getElementById('ledgerTitleText');
+      if (titleEl) {
+        titleEl.textContent = currentLedgerView === 'month' 
+          ? '按月统计归档 (Monthly Ledger Timeline)' 
+          : '按天归档时间流 (Daily Ledger Timeline)';
+      }
+      renderLedgerCards();
+    });
+  });
+
   // Trend Granularity Tabs
   document.querySelectorAll('#trendGranularityTabs .tab-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -247,7 +266,7 @@ async function loadAllData(silent = false) {
     }
     await Promise.all([
       loadSummary(),
-      loadDailyRecords(),
+      loadLedgerRecords(),
       loadTrends(),
       loadConversations(),
       loadAgentNavPills(),
@@ -268,7 +287,14 @@ async function loadSummary() {
   // KPI 1: Total Tokens
   document.getElementById('valTotalTokens').textContent = formatTokens(data.total_tokens);
   document.getElementById('valTotalTokensRaw').textContent = formatExact(data.total_tokens);
-  document.getElementById('kpiTodayTotalBadge').textContent = `+${formatTokens(data.today_total)} 今日`;
+  
+  const todayBadge = document.getElementById('kpiTodayTotalBadge');
+  const monthBadge = document.getElementById('kpiMonthTotalBadge');
+  if (todayBadge) todayBadge.textContent = `+${formatTokens(data.today_total)} 今日`;
+  if (monthBadge) monthBadge.textContent = `+${formatTokens(data.month_total)} 本月`;
+
+  const valMonth = document.getElementById('valMonthTokens');
+  if (valMonth) valMonth.textContent = formatTokens(data.month_total);
 
   // KPI 2: Input Tokens
   document.getElementById('valInputTokens').textContent = formatTokens(data.total_input);
@@ -357,34 +383,113 @@ function renderAgentNavPills(agents, totalTokens) {
   setPill('pillTotalZcode', map['zcode']);
 }
 
-// 2. Load Daily Records Timeline (按照天数区分记录，保持日历稳定展示)
-async function loadDailyRecords() {
-  const url = `/api/daily?agent=all&model=all&limit=60`;
-  const res = await fetch(url);
-  const dailyList = await res.json();
+// 2. Load Ledger Records Timeline (支持按天时间流与按月统计归档双视图)
+async function loadLedgerRecords() {
+  try {
+    const [resDaily, resMonthly] = await Promise.all([
+      fetch(`/api/daily?agent=all&model=all&limit=60`),
+      fetch(`/api/monthly?agent=all&model=all&limit=24`)
+    ]);
+    cachedDailyList = await resDaily.json();
+    cachedMonthlyList = await resMonthly.json();
 
+    const todayStr = getLocalDateString();
+    const hasToday = cachedDailyList && cachedDailyList.some(d => d.date_bucket === todayStr || d.is_today);
+    if (!hasToday && cachedDailyList) {
+      cachedDailyList.unshift({
+        date_bucket: todayStr,
+        is_today: true,
+        conv_count: 0,
+        total_tokens: 0,
+        total_input: 0,
+        total_output: 0,
+        cache_tokens: 0,
+        total_steps: 0,
+        agents_list: [],
+        models_list: []
+      });
+    }
+
+    updateDateSelectOptions(cachedDailyList || [], cachedMonthlyList || []);
+    renderLedgerCards();
+  } catch (err) {
+    console.error("Failed to load ledger records:", err);
+  }
+}
+
+function renderLedgerCards() {
+  if (currentLedgerView === 'month') {
+    renderMonthlyCards(cachedMonthlyList || []);
+  } else {
+    renderDailyCards(cachedDailyList || []);
+  }
+}
+
+function renderMonthlyCards(monthlyList) {
   const container = document.getElementById('dailyCardsContainer');
   container.innerHTML = '';
 
-  const todayStr = getLocalDateString();
-  const hasToday = dailyList && dailyList.some(d => d.date_bucket === todayStr || d.is_today);
-  if (!hasToday && dailyList) {
-    dailyList.unshift({
-      date_bucket: todayStr,
-      is_today: true,
-      conv_count: 0,
-      total_tokens: 0,
-      total_input: 0,
-      total_output: 0,
-      cache_tokens: 0,
-      total_steps: 0,
-      agents_list: [],
-      models_list: []
-    });
+  if (!monthlyList || monthlyList.length === 0) {
+    container.innerHTML = '<div style="color: var(--text-dim); padding: 20px;">暂无月份统计记录</div>';
+    return;
   }
 
-  // Update date selector dropdown
-  updateDateSelectOptions(dailyList || []);
+  const curMonthStr = todayDateStr.slice(0, 7);
+
+  monthlyList.forEach(m => {
+    const card = document.createElement('div');
+    const isActive = (currentDate === m.month_bucket) || (currentDate === 'this_month' && m.is_current_month);
+    card.className = `daily-card ${isActive ? 'active' : ''}`;
+    card.title = `点击切换筛选：仅看 ${m.month_bucket} 全月的会话与指标`;
+    card.onclick = () => {
+      if (currentDate === m.month_bucket || (currentDate === 'this_month' && m.is_current_month)) {
+        currentDate = 'all'; // toggle off
+      } else {
+        currentDate = m.month_bucket;
+      }
+      document.getElementById('dateFilterSelect').value = currentDate;
+      currentPage = 0;
+      loadAllData();
+    };
+
+    let tagsHtml = '';
+    (m.agents_list || []).forEach(ag => {
+      const conf = AGENT_CONFIG[ag] || { name: ag, icon: '🤖', badgeClass: 'badge-project' };
+      tagsHtml += `<span class="badge ${conf.badgeClass}" style="font-size: 0.68rem; padding: 1px 5px;">${conf.icon} ${conf.name}</span>`;
+    });
+    (m.models_list || []).slice(0, 3).forEach(model => {
+      tagsHtml += `<span class="badge badge-model" style="font-size: 0.68rem; padding: 1px 5px;">${model}</span>`;
+    });
+
+    const isCurrent = m.is_current_month || (m.month_bucket === curMonthStr);
+    const monthTag = isCurrent ? '<span style="color: #818cf8; font-size: 0.75rem; font-weight: bold;">[本月]</span>' : '';
+
+    const inAndCache = m.input_tokens + m.cache_tokens;
+    const cacheRate = inAndCache > 0 ? ((m.cache_tokens / inAndCache) * 100).toFixed(1) : 0;
+
+    card.innerHTML = `
+      <div class="daily-card-header">
+        <div class="daily-card-date">
+          <span>🗓️ ${m.month_bucket} 月度</span>
+          ${monthTag}
+        </div>
+        <div class="daily-card-tokens" style="color: #c084fc;">${formatTokens(m.total_tokens)}</div>
+      </div>
+      <div class="daily-card-meta">
+        <span>${m.conv_count} 个会话 · ${m.total_steps || 0} 轮交互</span>
+        <span>缓存: ${formatTokens(m.cache_tokens)} (${cacheRate}%)</span>
+      </div>
+      <div class="daily-card-tags">
+        ${tagsHtml}
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function renderDailyCards(dailyList) {
+  const container = document.getElementById('dailyCardsContainer');
+  container.innerHTML = '';
 
   if (!dailyList || dailyList.length === 0) {
     container.innerHTML = '<div style="color: var(--text-dim); padding: 20px;">暂无该条件下的天数记录</div>';
@@ -438,27 +543,52 @@ async function loadDailyRecords() {
   });
 }
 
-function updateDateSelectOptions(dailyList) {
+function updateDateSelectOptions(dailyList, monthlyList) {
   const sel = document.getElementById('dateFilterSelect');
   const todayStr = getLocalDateString();
+  const thisMonthStr = todayStr.slice(0, 7);
   
   let opts = '';
-  // 1. Today option (Default)
-  const todayItem = dailyList.find(d => d.is_today || d.date_bucket === todayStr);
+
+  // 1. Quick Scope
+  opts += `<optgroup label="快捷范围">`;
+  const todayItem = (dailyList || []).find(d => d.is_today || d.date_bucket === todayStr);
   const todayTokens = todayItem ? formatTokens(todayItem.total_tokens) : '--';
   const isTodaySelected = (currentDate === todayStr || currentDate === 'today');
   opts += `<option value="${todayStr}" ${isTodaySelected ? 'selected' : ''}>📅 今日 (${todayStr}) (${todayTokens}) [默认]</option>`;
-  
-  // 2. All time option
+
+  const monthItem = (monthlyList || []).find(m => m.is_current_month || m.month_bucket === thisMonthStr);
+  const monthTokens = monthItem ? formatTokens(monthItem.total_tokens) : '--';
+  const isThisMonthSelected = (currentDate === thisMonthStr || currentDate === 'this_month');
+  opts += `<option value="${thisMonthStr}" ${isThisMonthSelected ? 'selected' : ''}>🗓️ 本月 (${thisMonthStr}) (${monthTokens})</option>`;
+
   const isAllSelected = (currentDate === 'all');
   opts += `<option value="all" ${isAllSelected ? 'selected' : ''}>🌐 全部历史天数 (All Time)</option>`;
-  
-  // 3. Other historical days
-  dailyList.forEach(d => {
-    if (d.date_bucket === todayStr) return; // already added above
-    const isSelected = (d.date_bucket === currentDate) ? 'selected' : '';
-    opts += `<option value="${d.date_bucket}" ${isSelected}>📅 ${d.date_bucket} (${formatTokens(d.total_tokens)})</option>`;
-  });
+  opts += `</optgroup>`;
+
+  // 2. Monthly Scope
+  if (monthlyList && monthlyList.length > 0) {
+    opts += `<optgroup label="按月度归档筛选 (Monthly)">`;
+    monthlyList.forEach(m => {
+      const isCur = m.is_current_month || m.month_bucket === thisMonthStr;
+      const curTag = isCur ? ' [本月]' : '';
+      const isSelected = (m.month_bucket === currentDate) ? 'selected' : '';
+      opts += `<option value="${m.month_bucket}" ${isSelected}>🗓️ ${m.month_bucket} (${formatTokens(m.total_tokens)})${curTag}</option>`;
+    });
+    opts += `</optgroup>`;
+  }
+
+  // 3. Daily Scope
+  if (dailyList && dailyList.length > 0) {
+    opts += `<optgroup label="按单天时间流筛选 (Daily)">`;
+    dailyList.forEach(d => {
+      if (d.date_bucket === todayStr) return; // already added above
+      const isSelected = (d.date_bucket === currentDate) ? 'selected' : '';
+      opts += `<option value="${d.date_bucket}" ${isSelected}>📅 ${d.date_bucket} (${formatTokens(d.total_tokens)})</option>`;
+    });
+    opts += `</optgroup>`;
+  }
+
   sel.innerHTML = opts;
 }
 
@@ -615,12 +745,17 @@ async function updateModelSelectOptions(currentScopeModels) {
 
 // 3. Load Trends Chart
 async function loadTrends() {
-  const url = `/api/trends?granularity=${currentGranularity}&days=30&agent=${currentAgent}&model=${currentModel}&date=${currentDate}`;
+  let dateParam = currentDate;
+  if (currentGranularity === 'month') {
+    dateParam = (currentDate && currentDate.length === 7) ? currentDate : 'all';
+  }
+  const url = `/api/trends?granularity=${currentGranularity}&days=30&agent=${currentAgent}&model=${currentModel}&date=${dateParam}`;
   const res = await fetch(url);
   const trends = await res.json();
 
   const labels = trends.map(t => {
     if (currentGranularity === 'hour') return t.time_bucket.slice(5);
+    if (currentGranularity === 'month') return t.time_bucket;
     return t.time_bucket.slice(5);
   });
 
@@ -646,7 +781,7 @@ async function loadTrends() {
           borderColor: '#3b82f6',
           borderWidth: 1,
           borderRadius: 4,
-          maxBarThickness: 32,
+          maxBarThickness: currentGranularity === 'month' ? 52 : 32,
           stack: 'tokens'
         },
         {
@@ -657,7 +792,7 @@ async function loadTrends() {
           borderColor: '#ec4899',
           borderWidth: 1,
           borderRadius: 4,
-          maxBarThickness: 32,
+          maxBarThickness: currentGranularity === 'month' ? 52 : 32,
           stack: 'tokens'
         },
         {
@@ -729,13 +864,15 @@ async function loadConversations() {
   tbody.innerHTML = '';
 
   if (!data.items || data.items.length === 0) {
+    const isMonthScope = (currentDate && currentDate.length === 7);
+    const scopeLabel = isMonthScope ? `月份【${currentDate}】` : `日期【${currentDate}】`;
     let emptyHtml = `
       <div style="padding: 30px 15px; text-align: center;">
         <div style="font-size: 1rem; color: #cbd5e1; margin-bottom: 8px;">
-          ${currentDate !== 'all' ? `📅 所选日期【${currentDate}】暂无匹配会话` : '暂无匹配的会话数据'}
+          ${currentDate !== 'all' ? `🗓️ 所选${scopeLabel}暂无匹配会话` : '暂无匹配的会话数据'}
         </div>
         <div style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 14px;">
-          ${currentDate !== 'all' ? '系统默认进入「今日」视图。若您在寻找其他历史会话（如 WorkBuddy 或历史 Qoder 会话），可一键切换为全部天数。' : '请调整筛选条件或搜索关键词重试。'}
+          ${currentDate !== 'all' ? '当前处于特定日期/月份视图。若您在寻找其他历史会话，可一键切换为全部天数。' : '请调整筛选条件或搜索关键词重试。'}
         </div>
         ${currentDate !== 'all' ? `
           <button class="btn btn-primary" style="padding: 6px 16px; font-size: 0.84rem;" onclick="switchToAllDates()">

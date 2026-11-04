@@ -36,8 +36,9 @@
         </div>
 
         <!-- Date Filter -->
-        <select id="dateFilterSelect" class="select-control" title="按日期筛选记录">
+        <select id="dateFilterSelect" class="select-control" title="按日期或月份筛选记录">
           <option value="today" selected>📅 今日 [默认]</option>
+          <option value="this_month">🗓️ 本月 (This Month)</option>
           <option value="all">🌐 全部历史天数 (All Time)</option>
         </select>
 
@@ -116,13 +117,19 @@
       <div class="kpi-card" style="--card-accent: #6366f1;">
         <div class="kpi-header">
           <span class="kpi-title">Token 消耗总量 (In + Out)</span>
-          <span class="kpi-badge" id="kpiTodayTotalBadge">+0 今日</span>
+          <div style="display: flex; gap: 6px;">
+            <span class="kpi-badge" id="kpiTodayTotalBadge">+0 今日</span>
+            <span class="kpi-badge" id="kpiMonthTotalBadge" style="background: rgba(99, 102, 241, 0.2); color: #818cf8;">+0 本月</span>
+          </div>
         </div>
         <div class="kpi-value" id="valTotalTokens">--</div>
         <div class="kpi-sub">
           <span>精确计:</span>
           <span class="highlight" id="valTotalTokensRaw">--</span>
           <span>Tokens</span>
+          <span style="margin: 0 4px; color: var(--border-color);">|</span>
+          <span>本月:</span>
+          <span class="highlight" style="color: #a5b4fc;" id="valMonthTokens">--</span>
         </div>
       </div>
 
@@ -195,14 +202,20 @@
       </div>
     </section>
 
-    <!-- Daily Timeline Ledger Cards (按天数区分记录) -->
+    <!-- Daily / Monthly Timeline Ledger Cards (按天/按月归档记录) -->
     <section class="card" style="margin-bottom: 24px;">
       <div class="card-header">
         <div class="card-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          按天归档时间流 (Daily Ledger Timeline)
+          <span id="ledgerTitleText">按天归档时间流 (Daily Ledger Timeline)</span>
         </div>
-        <span style="font-size: 0.8rem; color: var(--text-dim);" id="dailyCountBadge">点击日期卡片可一键筛选当天记录</span>
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+          <div class="tab-group" id="ledgerViewTabs">
+            <button class="tab-btn active" data-view="day">📅 按天时间流</button>
+            <button class="tab-btn" data-view="month">🗓️ 按月统计归档</button>
+          </div>
+          <span style="font-size: 0.8rem; color: var(--text-dim);" id="dailyCountBadge">点击卡片可一键筛选记录</span>
+        </div>
       </div>
       <div class="daily-cards-scroll" id="dailyCardsContainer">
         <!-- Populated by JS -->
@@ -219,8 +232,9 @@
             Token 消耗与缓存走势
           </div>
           <div class="tab-group" id="trendGranularityTabs">
-            <button class="tab-btn active" data-granularity="day">按天统计</button>
             <button class="tab-btn" data-granularity="hour">按小时统计</button>
+            <button class="tab-btn active" data-granularity="day">按天统计</button>
+            <button class="tab-btn" data-granularity="month">按月统计</button>
           </div>
         </div>
         <div class="chart-wrapper">

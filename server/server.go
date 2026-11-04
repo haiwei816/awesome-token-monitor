@@ -116,6 +116,18 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 		}
 		s.sendJSON(w, data, http.StatusOK)
 
+	case path == "/api/monthly":
+		limit, _ := strconv.Atoi(query.Get("limit"))
+		if limit <= 0 {
+			limit = 24
+		}
+		data, err := s.db.GetMonthly(agent, model, limit)
+		if err != nil {
+			s.sendJSON(w, map[string]string{"error": err.Error()}, http.StatusInternalServerError)
+			return
+		}
+		s.sendJSON(w, data, http.StatusOK)
+
 	case path == "/api/trends":
 		granularity := query.Get("granularity")
 		if granularity == "" {
@@ -227,6 +239,7 @@ func (s *Server) handleExportCSV(w http.ResponseWriter, agent, model, date strin
 func (s *Server) handleExportJSON(w http.ResponseWriter, agent, model, date string) {
 	summary, _ := s.db.GetSummary(agent, model, date)
 	daily, _ := s.db.GetDaily(agent, model, 60)
+	monthly, _ := s.db.GetMonthly(agent, model, 24)
 	trends, _ := s.db.GetTrends(agent, "day", model, date)
 	convMap, _ := s.db.GetConversations(agent, model, date, "total_tokens", "desc", "", 10000, 0)
 
@@ -242,10 +255,11 @@ func (s *Server) handleExportJSON(w http.ResponseWriter, agent, model, date stri
 			"model": model,
 			"date":  date,
 		},
-		"summary":       summary,
-		"daily_records": daily,
-		"trends":        trends,
-		"conversations": convs,
+		"summary":         summary,
+		"daily_records":   daily,
+		"monthly_records": monthly,
+		"trends":          trends,
+		"conversations":   convs,
 	}
 
 	content, err := json.MarshalIndent(exportObj, "", "  ")
