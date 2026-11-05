@@ -40,6 +40,11 @@ func (s *Server) Start() error {
 			s.handleAPI(w, r)
 			return
 		}
+		// Ensure static assets (HTML/JS/CSS) are not aggressively cached by browsers
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Set("Pragma", "no-cache")
+		w.Header().Set("Expires", "0")
+
 		if r.URL.Path == "/" || r.URL.Path == "" {
 			http.ServeFile(w, r, filepath.Join(s.webDir, "index.html"))
 			return

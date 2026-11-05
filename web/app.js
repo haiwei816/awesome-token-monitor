@@ -57,6 +57,7 @@ window.switchToToday = function() {
   const sel = document.getElementById('dateFilterSelect');
   if (sel) sel.value = currentDate;
   currentPage = 0;
+  showToast(`已切换至【今日 (${todayStr})】数据视图`, 'info');
   loadAllData();
 };
 
@@ -70,6 +71,7 @@ window.switchToThisMonth = function() {
   const sel = document.getElementById('dateFilterSelect');
   if (sel) sel.value = currentDate;
   currentPage = 0;
+  showToast(`已切换至【本月 (${curMonth})】数据视图`, 'info');
   loadAllData();
 };
 
@@ -78,6 +80,7 @@ window.switchToAllDates = function() {
   const sel = document.getElementById('dateFilterSelect');
   if (sel) sel.value = 'all';
   currentPage = 0;
+  showToast('已切回【全部历史】数据视图', 'info');
   loadAllData();
 };
 
@@ -381,8 +384,10 @@ async function loadSummary() {
   const curMonthStr = todayDateStr.slice(0, 7);
 
   // KPI 1: Total Tokens
-  document.getElementById('valTotalTokens').textContent = formatTokens(data.total_tokens);
-  document.getElementById('valTotalTokensRaw').textContent = formatExact(data.total_tokens);
+  const valTotalTokensEl = document.getElementById('valTotalTokens');
+  if (valTotalTokensEl) valTotalTokensEl.textContent = formatTokens(data.total_tokens);
+  const valTotalTokensRawEl = document.getElementById('valTotalTokensRaw');
+  if (valTotalTokensRawEl) valTotalTokensRawEl.textContent = formatExact(data.total_tokens);
 
   const totalTitleEl = document.getElementById('kpiTotalTitle');
   const todayBadge = document.getElementById('kpiTodayTotalBadge');

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Awesome Token Monitor · AI Agent 模型监控大盘</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2.2">
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
@@ -114,7 +114,7 @@
     <!-- Top KPI Cards -->
     <section class="kpi-grid">
       <!-- 1. Total Tokens -->
-      <div class="kpi-card" style="--card-accent: #6366f1;">
+      <div class="kpi-card" style="--card-accent: #6366f1; cursor: pointer;" id="cardTodayOrTotal" title="点击卡片可一键切换【今日】与【全部历史】视图">
         <div class="kpi-header">
           <span class="kpi-title" id="kpiTotalTitle">历史消耗总量 (All-Time Total)</span>
           <div style="display: flex; gap: 6px;">
@@ -138,8 +138,7 @@
         </div>
         <div class="kpi-value" style="color: #c084fc;" id="valMonthTotalTokens">--</div>
         <div class="kpi-sub" id="kpiMonthSub">
-          <span>今日消耗:</span>
-          <span class="highlight" style="color: #34d399;" id="valTodayTokensSub">--</span>
+          <span id="subTodayLink" style="cursor: pointer; padding: 1px 4px; border-radius: 4px; background: rgba(52, 211, 153, 0.1);" title="点击直接切换至今日消耗视图">今日消耗: <span class="highlight" style="color: #34d399;" id="valTodayTokensSub">--</span></span>
           <span style="margin: 0 4px; color: var(--border-color);">|</span>
           <span>本月轮次:</span>
           <span class="highlight" id="valMonthStepsSub">--</span>
@@ -174,7 +173,7 @@
       </div>
 
       <!-- 5. Cache Read Tokens -->
-      <div class="kpi-card" style="--card-accent: #10b981;">
+      <div class="kpi-card" style="--card-accent: #10b981; cursor: pointer;" id="cardCache" title="点击卡片可一键切换【今日】与【全部历史】视图">
         <div class="kpi-header">
           <span class="kpi-title" id="kpiCacheTitle">Prompt 缓存命中 (Cache)</span>
           <span class="kpi-badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981;" id="valCacheHitRate">--% 命中</span>
@@ -443,6 +442,6 @@
   <!-- Toast Notification Container -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2.2"></script>
 </body>
 </html>
