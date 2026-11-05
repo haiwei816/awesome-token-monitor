@@ -230,6 +230,7 @@ func (s *Server) handleExportCSV(w http.ResponseWriter, agent, model, date strin
 	content := []byte(csvData)
 
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Content-Disposition", `attachment; filename="universal_ai_token_report.csv"`)
 	w.Header().Set("Content-Length", strconv.Itoa(len(content)))
 	w.WriteHeader(http.StatusOK)
@@ -269,6 +270,7 @@ func (s *Server) handleExportJSON(w http.ResponseWriter, agent, model, date stri
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.Header().Set("Content-Disposition", `attachment; filename="universal_ai_token_data.json"`)
 	w.Header().Set("Content-Length", strconv.Itoa(len(content)))
 	w.WriteHeader(http.StatusOK)
@@ -277,6 +279,9 @@ func (s *Server) handleExportJSON(w http.ResponseWriter, agent, model, date stri
 
 func (s *Server) sendJSON(w http.ResponseWriter, data interface{}, status int) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Pragma", "no-cache")
+	w.Header().Set("Expires", "0")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(data)
 }

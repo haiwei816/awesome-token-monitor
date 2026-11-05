@@ -377,7 +377,7 @@ func (d *DB) GetTrends(agentFilter, granularity, modelFilter, dateFilter string)
 	}
 	timeExpr := "date_bucket"
 	if granularity == "hour" {
-		timeExpr = "strftime('%Y-%m-%d %H:00', created_at)"
+		timeExpr = "strftime('%Y-%m-%d %H:00', datetime(created_at, 'localtime'))"
 	} else if granularity == "month" {
 		timeExpr = "substr(date_bucket, 1, 7)"
 	}

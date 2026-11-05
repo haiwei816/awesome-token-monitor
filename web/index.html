@@ -118,8 +118,8 @@
         <div class="kpi-header">
           <span class="kpi-title" id="kpiTotalTitle">历史消耗总量 (All-Time Total)</span>
           <div style="display: flex; gap: 6px;">
-            <span class="kpi-badge" id="kpiTodayTotalBadge">+0 今日</span>
-            <span class="kpi-badge" id="kpiMonthTotalBadge" style="background: rgba(99, 102, 241, 0.2); color: #818cf8;">+0 本月</span>
+            <span class="kpi-badge" id="kpiTodayTotalBadge" style="cursor: pointer;" title="点击一键筛选仅查看今日数据">+0 今日</span>
+            <span class="kpi-badge" id="kpiMonthTotalBadge" style="background: rgba(99, 102, 241, 0.2); color: #818cf8; cursor: pointer;" title="点击一键筛选仅查看本月数据">+0 本月</span>
           </div>
         </div>
         <div class="kpi-value" id="valTotalTokens">--</div>
@@ -149,11 +149,11 @@
       <!-- 3. Input Tokens -->
       <div class="kpi-card" style="--card-accent: #3b82f6;">
         <div class="kpi-header">
-          <span class="kpi-title">模型输入 (Prompt Input)</span>
+          <span class="kpi-title" id="kpiInputTitle">模型输入 (Prompt Input)</span>
           <span class="kpi-badge" id="valInputRatio">--%</span>
         </div>
         <div class="kpi-value" id="valInputTokens">--</div>
-        <div class="kpi-sub">
+        <div class="kpi-sub" id="kpiInputSub">
           <span>今日输入:</span>
           <span class="highlight" id="valTodayInput">--</span>
         </div>
@@ -162,11 +162,11 @@
       <!-- 4. Output Tokens -->
       <div class="kpi-card" style="--card-accent: #ec4899;">
         <div class="kpi-header">
-          <span class="kpi-title">模型输出 (Generation)</span>
+          <span class="kpi-title" id="kpiOutputTitle">模型输出 (Generation)</span>
           <span class="kpi-badge" id="valOutputRatio">--%</span>
         </div>
         <div class="kpi-value" id="valOutputTokens">--</div>
-        <div class="kpi-sub">
+        <div class="kpi-sub" id="kpiOutputSub">
           <span>今日输出:</span>
           <span class="highlight" id="valTodayOutput">--</span>
           <span>(含思维链)</span>
@@ -176,11 +176,14 @@
       <!-- 5. Cache Read Tokens -->
       <div class="kpi-card" style="--card-accent: #10b981;">
         <div class="kpi-header">
-          <span class="kpi-title">Prompt 缓存命中 (Cache)</span>
-          <span class="kpi-badge" style="background: rgba(168, 85, 247, 0.2); color: #10b981;" id="valCacheHitRate">--% 命中</span>
+          <span class="kpi-title" id="kpiCacheTitle">Prompt 缓存命中 (Cache)</span>
+          <span class="kpi-badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981;" id="valCacheHitRate">--% 命中</span>
         </div>
         <div class="kpi-value" id="valCacheTokens">--</div>
-        <div class="kpi-sub">
+        <div class="kpi-sub" id="kpiCacheSub">
+          <span>今日缓存:</span>
+          <span class="highlight" style="color: #10b981;" id="valTodayCache">--</span>
+          <span style="margin: 0 4px; color: var(--border-color);">|</span>
           <span>节省重复计算:</span>
           <span class="highlight" style="color: #10b981;" id="valCacheRatioDesc">--</span>
         </div>
@@ -189,11 +192,11 @@
       <!-- 6. Active Models -->
       <div class="kpi-card" style="--card-accent: #f59e0b;">
         <div class="kpi-header">
-          <span class="kpi-title">涉及模型型号 (Models)</span>
+          <span class="kpi-title" id="kpiModelsTitle">涉及模型型号 (Models)</span>
           <span class="kpi-badge" id="valModelsCount">0 种型号</span>
         </div>
         <div class="kpi-value" id="valPrimaryModel">--</div>
-        <div class="kpi-sub">
+        <div class="kpi-sub" id="kpiModelsSub">
           <span>主力模型消耗:</span>
           <span class="highlight" style="color: #f59e0b;" id="valPrimaryModelTokens">--</span>
         </div>
@@ -202,11 +205,11 @@
       <!-- 7. Conversations & Steps -->
       <div class="kpi-card" style="--card-accent: #8b5cf6;">
         <div class="kpi-header">
-          <span class="kpi-title">会话 / 交互轮次</span>
+          <span class="kpi-title" id="kpiConvsTitle">会话 / 交互轮次</span>
           <span class="kpi-badge" id="valAgentTypeBadge">全平台</span>
         </div>
         <div class="kpi-value" id="valConversations">--</div>
-        <div class="kpi-sub">
+        <div class="kpi-sub" id="kpiConvsSub">
           <span>总计:</span>
           <span class="highlight" id="valTotalSteps">0</span>
           <span>轮 | 单轮均值:</span>
@@ -261,7 +264,7 @@
         <div class="card-header">
           <div class="card-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><path d="M3 3v18h18M18 9l-5 5-4-4-6 6"/></svg>
-            Token 消耗与缓存走势
+            <span id="trendChartTitle">Token 消耗与缓存走势</span>
           </div>
           <div class="tab-group" id="trendGranularityTabs">
             <button class="tab-btn" data-granularity="hour">按小时统计</button>
