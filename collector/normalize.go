@@ -33,6 +33,9 @@ func FormatModelName(rawName string) string {
 	if strings.Contains(lower, "gpt-6-luna") {
 		return "GPT-6 Luna"
 	}
+	if strings.Contains(lower, "gpt-6.1-terra") || strings.Contains(lower, "gpt-6-1-terra") {
+		return "GPT-6.1 Terra"
+	}
 	if strings.Contains(lower, "gpt-5.6-luna") {
 		return "GPT-5.6 Luna"
 	}
@@ -47,6 +50,11 @@ func FormatModelName(rawName string) string {
 	}
 	if strings.Contains(lower, "deepseek-flash") {
 		return "DeepSeek Flash"
+	}
+	if strings.Contains(lower, "gemini-4-hydrogen") || strings.Contains(lower, "hydrogen") ||
+		strings.Contains(lower, "m524") || strings.Contains(lower, "m525") || strings.Contains(lower, "m526") ||
+		strings.Contains(lower, "m527") || strings.Contains(lower, "m528") {
+		return "Gemini 4 Hydrogen"
 	}
 	if strings.Contains(lower, "gemini-4") || strings.Contains(lower, "argon") ||
 		strings.Contains(lower, "m408") || strings.Contains(lower, "m409") || strings.Contains(lower, "m410") ||

@@ -46,7 +46,10 @@ func (s *AntigravityScanner) Scan(scanStates map[string][2]float64) ([]Conversat
 				if len(parts) > 1 {
 					raw := strings.Trim(strings.TrimSpace(parts[1]), `"`)
 					lowerRaw := strings.ToLower(raw)
-					if strings.Contains(lowerRaw, "m408") || strings.Contains(lowerRaw, "m409") || strings.Contains(lowerRaw, "m410") ||
+					if strings.Contains(lowerRaw, "m524") || strings.Contains(lowerRaw, "m525") || strings.Contains(lowerRaw, "m526") ||
+						strings.Contains(lowerRaw, "m527") || strings.Contains(lowerRaw, "m528") || strings.Contains(lowerRaw, "hydrogen") {
+						defaultModel = "gemini-4-hydrogen"
+					} else if strings.Contains(lowerRaw, "m408") || strings.Contains(lowerRaw, "m409") || strings.Contains(lowerRaw, "m410") ||
 						strings.Contains(lowerRaw, "m411") || strings.Contains(lowerRaw, "m412") || strings.Contains(lowerRaw, "m413") ||
 						strings.Contains(lowerRaw, "m417") || strings.Contains(lowerRaw, "m418") || strings.Contains(lowerRaw, "m419") ||
 						strings.Contains(lowerRaw, "argon") || strings.Contains(lowerRaw, "gemini-4") {
@@ -347,6 +350,9 @@ func (s *AntigravityScanner) loadStepModelRanges(cid, agentName, defaultModel st
 				"MODEL_PLACEHOLDER_M318", "MODEL_PLACEHOLDER_M319", "MODEL_PLACEHOLDER_M320", "MODEL_PLACEHOLDER_M322",
 				"MODEL_PLACEHOLDER_M78":
 				mName = "gemini-3.8-flash"
+			case "MODEL_PLACEHOLDER_M524", "MODEL_PLACEHOLDER_M525", "MODEL_PLACEHOLDER_M526", "MODEL_PLACEHOLDER_M527",
+				"MODEL_PLACEHOLDER_M528":
+				mName = "gemini-4-hydrogen"
 			case "MODEL_PLACEHOLDER_M408", "MODEL_PLACEHOLDER_M409", "MODEL_PLACEHOLDER_M410", "MODEL_PLACEHOLDER_M411",
 				"MODEL_PLACEHOLDER_M412", "MODEL_PLACEHOLDER_M413", "MODEL_PLACEHOLDER_M417", "MODEL_PLACEHOLDER_M418",
 				"MODEL_PLACEHOLDER_M419":
@@ -365,6 +371,8 @@ func (s *AntigravityScanner) loadStepModelRanges(cid, agentName, defaultModel st
 			default:
 				if strings.Contains(enumVal, "GPT_OSS") {
 					mName = "gpt-oss-120b"
+				} else if strings.Contains(enumVal, "M52") {
+					mName = "gemini-4-hydrogen"
 				} else if strings.Contains(enumVal, "M40") || strings.Contains(enumVal, "M41") {
 					mName = "gemini-4-argon"
 				} else {
