@@ -14,7 +14,7 @@
       }
     })();
   </script>
-  <link rel="stylesheet" href="style.css?v=3.2">
+  <link rel="stylesheet" href="style.css?v=3.3">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -154,12 +154,17 @@
       </button>
     </div>
 
-    <!-- Symmetrical 12-Col Bento KPI Grid (3 Hero Cards + 4 Compact Cards, Zero Orphans) -->
+    <!-- Symmetrical 12-Col Bento KPI Grid (3 Hero Cards + 4 Compact Cards) -->
     <section class="kpi-bento-grid">
-      <!-- 1. Hero: Total Tokens -->
-      <div class="kpi-card kpi-hero kpi-interactive" style="--card-accent: var(--accent-primary);" id="cardTodayOrTotal" title="点击卡片可一键切换【今日】与【全部历史】视图">
+      <!-- 1. Hero: Total Tokens (Flagship Card) -->
+      <div class="kpi-card kpi-hero kpi-hero-flagship kpi-interactive" style="--card-accent: var(--accent-primary); --card-tint: var(--accent-primary-tint);" id="cardTodayOrTotal" title="点击卡片可一键切换【今日】与【全部历史】视图">
         <div class="kpi-header">
-          <span class="kpi-title" id="kpiTotalTitle">历史消耗总量 (All-Time)</span>
+          <div class="kpi-title-group">
+            <span class="kpi-icon-badge kpi-icon-primary" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg>
+            </span>
+            <span class="kpi-title" id="kpiTotalTitle">历史消耗总量 (All-Time)</span>
+          </div>
           <div class="kpi-badge-group">
             <span class="kpi-badge" id="kpiTodayTotalBadge" title="点击筛选今日">+0 今日</span>
             <span class="kpi-badge kpi-badge-indigo" id="kpiMonthTotalBadge" title="点击筛选本月">+0 本月</span>
@@ -171,12 +176,25 @@
           <span class="highlight" id="valTotalTokensRaw">--</span>
           <span>Tokens</span>
         </div>
+        <div class="kpi-visual-footer">
+          <div class="kpi-meter-stack" title="输入 / 缓存 / 输出构成比">
+            <div class="kpi-meter-seg seg-cache" id="mixBarCache" style="width: 0%;"></div>
+            <div class="kpi-meter-seg seg-input" id="mixBarInput" style="width: 0%;"></div>
+            <div class="kpi-meter-seg seg-output" id="mixBarOutput" style="width: 0%;"></div>
+          </div>
+          <div class="kpi-meter-caption" id="kpiMixLegend">构成加载中...</div>
+        </div>
       </div>
 
       <!-- 2. Hero: This Month Tokens -->
-      <div class="kpi-card kpi-hero kpi-interactive" style="--card-accent: var(--color-month);" id="cardThisMonth" title="点击快速筛选并查看本月会话与模型">
+      <div class="kpi-card kpi-hero kpi-interactive" style="--card-accent: var(--color-month); --card-tint: var(--color-month-tint);" id="cardThisMonth" title="点击快速筛选并查看本月会话与模型">
         <div class="kpi-header">
-          <span class="kpi-title" id="kpiMonthTitle">本月消耗总量</span>
+          <div class="kpi-title-group">
+            <span class="kpi-icon-badge kpi-icon-month" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </span>
+            <span class="kpi-title" id="kpiMonthTitle">本月消耗总量</span>
+          </div>
           <span class="kpi-badge kpi-badge-purple" id="kpiMonthRatioBadge">占历史 --%</span>
         </div>
         <div class="kpi-value kpi-value-hero text-month" id="valMonthTotalTokens">--</div>
@@ -185,12 +203,23 @@
           <span class="sub-sep">·</span>
           <span>本月 <span class="highlight" id="valMonthStepsSub">--</span></span>
         </div>
+        <div class="kpi-visual-footer">
+          <div class="kpi-meter-track">
+            <div class="kpi-meter-fill fill-month" id="monthShareMeterFill" style="width: 0%;"></div>
+          </div>
+          <div class="kpi-meter-caption" id="kpiMonthMeterCaption">本月占历史消耗进度</div>
+        </div>
       </div>
 
       <!-- 3. Hero: Cache Read Tokens -->
-      <div class="kpi-card kpi-hero kpi-interactive" style="--card-accent: var(--color-cache);" id="cardCache" title="点击卡片可一键切换【今日】与【全部历史】视图">
+      <div class="kpi-card kpi-hero kpi-interactive" style="--card-accent: var(--color-cache); --card-tint: var(--color-cache-tint);" id="cardCache" title="点击卡片可一键切换【今日】与【全部历史】视图">
         <div class="kpi-header">
-          <span class="kpi-title" id="kpiCacheTitle">Prompt 缓存命中</span>
+          <div class="kpi-title-group">
+            <span class="kpi-icon-badge kpi-icon-cache" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            </span>
+            <span class="kpi-title" id="kpiCacheTitle">Prompt 缓存命中</span>
+          </div>
           <span class="kpi-badge kpi-badge-emerald" id="valCacheHitRate">--% 命中率</span>
         </div>
         <div class="kpi-value kpi-value-hero text-cache" id="valCacheTokens">--</div>
@@ -201,12 +230,23 @@
           <span>本月</span>
           <span class="highlight text-cache" id="valCacheRatioDesc">--</span>
         </div>
+        <div class="kpi-visual-footer">
+          <div class="kpi-meter-track">
+            <div class="kpi-meter-fill fill-cache" id="cacheRateMeterFill" style="width: 0%;"></div>
+          </div>
+          <div class="kpi-meter-caption" id="kpiCacheMeterCaption">Prompt 缓存复用效率</div>
+        </div>
       </div>
 
       <!-- 4. Secondary: Input Tokens -->
-      <div class="kpi-card kpi-compact" style="--card-accent: var(--color-input);">
+      <div class="kpi-card kpi-compact" style="--card-accent: var(--color-input); --card-tint: var(--color-input-tint);">
         <div class="kpi-header">
-          <span class="kpi-title" id="kpiInputTitle">模型输入 (Input)</span>
+          <div class="kpi-title-group">
+            <span class="kpi-icon-chip chip-input" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+            </span>
+            <span class="kpi-title" id="kpiInputTitle">模型输入 (Input)</span>
+          </div>
           <span class="kpi-badge" id="valInputRatio">--%</span>
         </div>
         <div class="kpi-value" id="valInputTokens">--</div>
@@ -214,12 +254,20 @@
           <span>今日</span>
           <span class="highlight" id="valTodayInput">--</span>
         </div>
+        <div class="kpi-micro-bar">
+          <div class="kpi-micro-fill fill-input" id="inputShareMeterFill" style="width: 0%;"></div>
+        </div>
       </div>
 
       <!-- 5. Secondary: Output Tokens -->
-      <div class="kpi-card kpi-compact" style="--card-accent: var(--color-output);">
+      <div class="kpi-card kpi-compact" style="--card-accent: var(--color-output); --card-tint: var(--color-output-tint);">
         <div class="kpi-header">
-          <span class="kpi-title" id="kpiOutputTitle">模型输出 (Output)</span>
+          <div class="kpi-title-group">
+            <span class="kpi-icon-chip chip-output" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>
+            </span>
+            <span class="kpi-title" id="kpiOutputTitle">模型输出 (Output)</span>
+          </div>
           <span class="kpi-badge" id="valOutputRatio">--%</span>
         </div>
         <div class="kpi-value" id="valOutputTokens">--</div>
@@ -227,12 +275,20 @@
           <span>今日</span>
           <span class="highlight" id="valTodayOutput">--</span>
         </div>
+        <div class="kpi-micro-bar">
+          <div class="kpi-micro-fill fill-output" id="outputShareMeterFill" style="width: 0%;"></div>
+        </div>
       </div>
 
       <!-- 6. Secondary: Primary Model -->
-      <div class="kpi-card kpi-compact" style="--card-accent: var(--color-amber);">
+      <div class="kpi-card kpi-compact" style="--card-accent: var(--color-amber); --card-tint: var(--color-amber-tint);">
         <div class="kpi-header">
-          <span class="kpi-title" id="kpiModelsTitle">主力模型</span>
+          <div class="kpi-title-group">
+            <span class="kpi-icon-chip chip-amber" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/></svg>
+            </span>
+            <span class="kpi-title" id="kpiModelsTitle">主力模型</span>
+          </div>
           <span class="kpi-badge" id="valModelsCount">0 种</span>
         </div>
         <div class="kpi-value kpi-value-model" id="valPrimaryModel">--</div>
@@ -240,12 +296,20 @@
           <span>消耗</span>
           <span class="highlight text-amber" id="valPrimaryModelTokens">--</span>
         </div>
+        <div class="kpi-micro-bar">
+          <div class="kpi-micro-fill fill-amber" id="primaryModelMeterFill" style="width: 0%;"></div>
+        </div>
       </div>
 
       <!-- 7. Secondary: Conversations & Steps -->
-      <div class="kpi-card kpi-compact" style="--card-accent: var(--accent-primary);">
+      <div class="kpi-card kpi-compact" style="--card-accent: var(--accent-primary); --card-tint: var(--accent-primary-tint);">
         <div class="kpi-header">
-          <span class="kpi-title" id="kpiConvsTitle">会话 / 轮次</span>
+          <div class="kpi-title-group">
+            <span class="kpi-icon-chip chip-primary" aria-hidden="true">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </span>
+            <span class="kpi-title" id="kpiConvsTitle">会话 / 轮次</span>
+          </div>
           <span class="kpi-badge" id="valAgentTypeBadge">全平台</span>
         </div>
         <div class="kpi-value" id="valConversations">--</div>
@@ -254,6 +318,9 @@
           <span class="highlight" id="valTotalSteps">0</span>
           <span>轮 · 均值</span>
           <span class="highlight" id="valAvgStepTokens">0</span>
+        </div>
+        <div class="kpi-micro-bar">
+          <div class="kpi-micro-fill fill-primary" style="width: 100%; opacity: 0.35;"></div>
         </div>
       </div>
     </section>
@@ -493,6 +560,6 @@
 
   <div id="toastContainer" class="toast-container"></div>
 
-  <script src="app.js?v=3.2"></script>
+  <script src="app.js?v=3.3"></script>
 </body>
 </html>

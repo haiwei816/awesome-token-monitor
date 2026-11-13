@@ -958,6 +958,54 @@ async function loadSummary() {
   if (kpiConvsSub) {
     kpiConvsSub.innerHTML = `<span class="highlight" id="valTotalSteps">${formatExact(data.total_steps)}</span> <span>轮</span> <span class="sub-sep">·</span> <span>均 <span class="highlight" id="valAvgStepTokens">${formatTokens(data.avg_tokens_per_step)}</span></span>`;
   }
+
+  // Visual KPI composition & telemetry meters
+  const tot = data.total_tokens || 0;
+  const cachePct = tot > 0 ? ((data.total_cache / tot) * 100) : 0;
+  const inputPct = tot > 0 ? ((data.total_input / tot) * 100) : 0;
+  const outputPct = tot > 0 ? Math.max(0, 100 - cachePct - inputPct) : 0;
+
+  const mixCacheEl = document.getElementById('mixBarCache');
+  const mixInputEl = document.getElementById('mixBarInput');
+  const mixOutputEl = document.getElementById('mixBarOutput');
+  const mixLegendEl = document.getElementById('kpiMixLegend');
+  if (mixCacheEl) mixCacheEl.style.width = `${cachePct.toFixed(1)}%`;
+  if (mixInputEl) mixInputEl.style.width = `${inputPct.toFixed(1)}%`;
+  if (mixOutputEl) mixOutputEl.style.width = `${outputPct.toFixed(1)}%`;
+  if (mixLegendEl) {
+    mixLegendEl.innerHTML = `<span>缓存 ${cachePct.toFixed(1)}%</span><span>输入 ${inputPct.toFixed(1)}% · 输出 ${outputPct.toFixed(1)}%</span>`;
+  }
+
+  const monthBase = allTimeTotalTokens || (currentDate === 'all' ? tot : 0);
+  const monthSharePct = monthBase > 0 ? Math.min(100, ((data.month_total || 0) / monthBase) * 100) : 0;
+  const monthMeterEl = document.getElementById('monthShareMeterFill');
+  const monthCapEl = document.getElementById('kpiMonthMeterCaption');
+  if (monthMeterEl) monthMeterEl.style.width = `${monthSharePct.toFixed(1)}%`;
+  if (monthCapEl) {
+    const todayInMonth = (data.month_total || 0) > 0 ? (((data.today_total || 0) / data.month_total) * 100).toFixed(1) : 0;
+    monthCapEl.innerHTML = `<span>占历史 ${monthSharePct.toFixed(1)}%</span><span>今日贡献 ${todayInMonth}%</span>`;
+  }
+
+  const hitPct = Math.min(100, Math.max(0, Number(data.cache_hit_ratio || 0)));
+  const cacheMeterEl = document.getElementById('cacheRateMeterFill');
+  const cacheCapEl = document.getElementById('kpiCacheMeterCaption');
+  if (cacheMeterEl) cacheMeterEl.style.width = `${hitPct.toFixed(1)}%`;
+  if (cacheCapEl) {
+    const uncached = formatTokens(data.total_input || 0);
+    cacheCapEl.innerHTML = `<span>复用率 ${hitPct.toFixed(1)}%</span><span>未命中入 ${uncached}</span>`;
+  }
+
+  const inBarEl = document.getElementById('inputShareMeterFill');
+  const outBarEl = document.getElementById('outputShareMeterFill');
+  const modelBarEl = document.getElementById('primaryModelMeterFill');
+  if (inBarEl) inBarEl.style.width = `${Math.min(100, Math.max(2, inputPct * 4)).toFixed(1)}%`;
+  if (outBarEl) outBarEl.style.width = `${Math.min(100, Math.max(2, outputPct * 6)).toFixed(1)}%`;
+  if (modelBarEl) {
+    const topModPct = (tot > 0 && models.length > 0 && currentModel === 'all')
+      ? Math.min(100, (models[0].total_tokens / tot) * 100)
+      : (currentModel !== 'all' ? 100 : 0);
+    modelBarEl.style.width = `${topModPct.toFixed(1)}%`;
+  }
 }
 
 // 始终获取全平台各 Agent 的 Token 总量
