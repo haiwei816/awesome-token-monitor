@@ -183,8 +183,105 @@ function showToast(message, type = 'info') {
   }, 3000);
 }
 
+const THEME_NAMES = {
+  editorial: '暖调纸感 · 浅色',
+  nordic: '极地浅灰 · 浅色',
+  charcoal: '暖炭琥珀 · 暗色',
+  obsidian: '黑曜遥测 · 暗色'
+};
+
+function getChartThemeTokens() {
+  const s = getComputedStyle(document.documentElement);
+  const v = (name, fallback) => s.getPropertyValue(name).trim() || fallback;
+  return {
+    inputBg: v('--chart-input-bg', 'rgba(29, 78, 216, 0.76)'),
+    inputActive: v('--chart-input-active', 'rgba(180, 83, 9, 0.92)'),
+    inputBorder: v('--chart-input-border', '#1d4ed8'),
+    outputBg: v('--chart-output-bg', 'rgba(194, 65, 12, 0.84)'),
+    outputActive: v('--chart-output-active', 'rgba(109, 40, 217, 0.92)'),
+    outputBorder: v('--chart-output-border', '#c2410c'),
+    cacheLine: v('--chart-cache-line', '#15803d'),
+    cacheFill: v('--chart-cache-fill', 'rgba(21, 128, 61, 0.09)'),
+    grid: v('--chart-grid', 'rgba(28, 25, 23, 0.07)'),
+    tick: v('--chart-tick', '#78716c'),
+    legend: v('--chart-legend', '#44403c'),
+    tooltipBg: v('--tooltip-bg', '#1c1917'),
+    tooltipBorder: v('--tooltip-border', '#44403c'),
+    tooltipTitle: v('--tooltip-title', '#fdfbf7'),
+    tooltipBody: v('--tooltip-body', '#e7e5e4')
+  };
+}
+
+function applyThemeToCharts() {
+  const t = getChartThemeTokens();
+  if (trendChartInstance) {
+    const ds = trendChartInstance.data.datasets;
+    const isBucketMatch = (idx) => currentDate !== 'all' && trendRawBuckets[idx] === currentDate;
+    ds[0].backgroundColor = trendRawBuckets.map((_, i) => isBucketMatch(i) ? t.inputActive : t.inputBg);
+    ds[0].hoverBackgroundColor = t.inputBorder;
+    ds[0].borderColor = t.inputBorder;
+    ds[1].backgroundColor = trendRawBuckets.map((_, i) => isBucketMatch(i) ? t.outputActive : t.outputBg);
+    ds[1].hoverBackgroundColor = t.outputBorder;
+    ds[1].borderColor = t.outputBorder;
+    ds[2].borderColor = t.cacheLine;
+    ds[2].backgroundColor = t.cacheFill;
+    ds[2].pointBackgroundColor = t.cacheLine;
+
+    const opts = trendChartInstance.options;
+    opts.plugins.legend.labels.color = t.legend;
+    opts.plugins.tooltip.backgroundColor = t.tooltipBg;
+    opts.plugins.tooltip.borderColor = t.tooltipBorder;
+    opts.plugins.tooltip.titleColor = t.tooltipTitle;
+    opts.plugins.tooltip.bodyColor = t.tooltipBody;
+    opts.scales.x.grid.color = t.grid;
+    opts.scales.x.ticks.color = t.tick;
+    opts.scales.y.grid.color = t.grid;
+    opts.scales.y.ticks.color = t.tick;
+    trendChartInstance.update('none');
+  }
+  if (stepGrowthChartInstance) {
+    const ds = stepGrowthChartInstance.data.datasets;
+    ds[0].borderColor = t.inputBorder;
+    ds[0].backgroundColor = t.cacheFill;
+    ds[1].borderColor = t.cacheLine;
+    ds[2].borderColor = t.outputBorder;
+    const opts = stepGrowthChartInstance.options;
+    opts.plugins.legend.labels.color = t.legend;
+    opts.plugins.tooltip.backgroundColor = t.tooltipBg;
+    opts.plugins.tooltip.borderColor = t.tooltipBorder;
+    opts.plugins.tooltip.titleColor = t.tooltipTitle;
+    opts.plugins.tooltip.bodyColor = t.tooltipBody;
+    opts.scales.x.grid.color = t.grid;
+    opts.scales.x.ticks.color = t.tick;
+    opts.scales.y.grid.color = t.grid;
+    opts.scales.y.ticks.color = t.tick;
+    stepGrowthChartInstance.update('none');
+  }
+}
+
+function initThemeSwitcher() {
+  let saved = 'editorial';
+  try {
+    saved = localStorage.getItem('atm_theme') || 'editorial';
+  } catch {}
+  if (!THEME_NAMES[saved]) saved = 'editorial';
+  document.documentElement.setAttribute('data-theme', saved);
+  const sel = document.getElementById('themeSelect');
+  if (sel) {
+    sel.value = saved;
+    sel.addEventListener('change', (e) => {
+      const nextTheme = THEME_NAMES[e.target.value] ? e.target.value : 'editorial';
+      document.documentElement.setAttribute('data-theme', nextTheme);
+      try { localStorage.setItem('atm_theme', nextTheme); } catch {}
+      requestAnimationFrame(() => applyThemeToCharts());
+      showToast(`已切换至「${THEME_NAMES[nextTheme]}」主题`, 'info');
+    });
+  }
+}
+
 // App Initialization
 document.addEventListener('DOMContentLoaded', () => {
+  initThemeSwitcher();
   initEventListeners();
   updateSortUI();
   updateSearchControlsUI();
@@ -752,7 +849,7 @@ async function loadSummary() {
   const kpiMonthSubEl = document.getElementById('kpiMonthSub');
   if (kpiMonthSubEl) {
     const todayPct = data.month_total > 0 ? ((data.today_total / data.month_total) * 100).toFixed(1) : 0;
-    kpiMonthSubEl.innerHTML = `<span id="subTodayLink" class="sub-quick-link" title="点击直接切换至今日消耗视图">今日 <span class="highlight" style="color: #34d399;" id="valTodayTokensSub">${formatTokens(data.today_total || 0)}</span> (${todayPct}%)</span> <span class="sub-sep">·</span> <span>本月 <span class="highlight" id="valMonthStepsSub">${formatExact(data.month_steps || 0)}</span> 轮</span>`;
+    kpiMonthSubEl.innerHTML = `<span id="subTodayLink" class="sub-quick-link" title="点击直接切换至今日消耗视图">今日 <span class="highlight text-cache" id="valTodayTokensSub">${formatTokens(data.today_total || 0)}</span> (${todayPct}%)</span> <span class="sub-sep">·</span> <span>本月 <span class="highlight" id="valMonthStepsSub">${formatExact(data.month_steps || 0)}</span> 轮</span>`;
   }
 
   // KPI 3: Input Tokens
@@ -805,16 +902,16 @@ async function loadSummary() {
 
   if (isToday) {
     if (kpiCacheTitle) kpiCacheTitle.textContent = '今日 Prompt 缓存命中';
-    if (kpiCacheSub) kpiCacheSub.innerHTML = `<span>精确</span> <span class="highlight" style="color: #10b981;" id="valTodayCache">${formatExact(data.total_cache)}</span> <span class="sub-sep">·</span> <span>节省 ${data.cache_hit_ratio}% 重复计算</span>`;
+    if (kpiCacheSub) kpiCacheSub.innerHTML = `<span>精确</span> <span class="highlight text-cache" id="valTodayCache">${formatExact(data.total_cache)}</span> <span class="sub-sep">·</span> <span>节省 ${data.cache_hit_ratio}% 重复计算</span>`;
   } else if (isMonth) {
     if (kpiCacheTitle) kpiCacheTitle.textContent = `${currentDate} 缓存命中`;
-    if (kpiCacheSub) kpiCacheSub.innerHTML = `<span>全月精确</span> <span class="highlight" style="color: #10b981;">${formatExact(data.total_cache)}</span> <span class="sub-sep">·</span> <span>节省 ${data.cache_hit_ratio}%</span>`;
+    if (kpiCacheSub) kpiCacheSub.innerHTML = `<span>全月精确</span> <span class="highlight text-cache">${formatExact(data.total_cache)}</span> <span class="sub-sep">·</span> <span>节省 ${data.cache_hit_ratio}%</span>`;
   } else if (currentDate !== 'all') {
     if (kpiCacheTitle) kpiCacheTitle.textContent = `${currentDate} 缓存命中`;
-    if (kpiCacheSub) kpiCacheSub.innerHTML = `<span>精确</span> <span class="highlight" style="color: #10b981;">${formatExact(data.total_cache)}</span> <span class="sub-sep">·</span> <span>节省 ${data.cache_hit_ratio}%</span>`;
+    if (kpiCacheSub) kpiCacheSub.innerHTML = `<span>精确</span> <span class="highlight text-cache">${formatExact(data.total_cache)}</span> <span class="sub-sep">·</span> <span>节省 ${data.cache_hit_ratio}%</span>`;
   } else {
     if (kpiCacheTitle) kpiCacheTitle.textContent = 'Prompt 缓存命中 (Cache)';
-    if (kpiCacheSub) kpiCacheSub.innerHTML = `<span>今日 <span class="highlight" style="color: #10b981;" id="valTodayCache">${formatTokens(data.today_cache)}</span></span> <span class="sub-sep">·</span> <span>本月 <span class="highlight" style="color: #10b981;">${formatTokens(data.month_cache)}</span></span> <span class="sub-sep">·</span> <span>节省 ${data.cache_hit_ratio}%</span>`;
+    if (kpiCacheSub) kpiCacheSub.innerHTML = `<span>今日 <span class="highlight text-cache" id="valTodayCache">${formatTokens(data.today_cache)}</span></span> <span class="sub-sep">·</span> <span>本月 <span class="highlight text-cache">${formatTokens(data.month_cache)}</span></span> <span class="sub-sep">·</span> <span>节省 ${data.cache_hit_ratio}%</span>`;
   }
 
   // KPI 6: Active Models
@@ -1057,7 +1154,7 @@ function renderMonthlyCards(monthlyList) {
     });
 
     const isCurrent = m.is_current_month || (m.month_bucket === curMonthStr);
-    const monthTag = isCurrent ? '<span style="color: #c084fc; font-size: 0.7rem; font-weight: 600;">本月</span>' : '';
+    const monthTag = isCurrent ? '<span class="text-month" style="font-size: 0.7rem; font-weight: 600;">本月</span>' : '';
 
     const inAndCache = m.input_tokens + m.cache_tokens;
     const cacheRate = inAndCache > 0 ? ((m.cache_tokens / inAndCache) * 100).toFixed(1) : 0;
@@ -1068,7 +1165,7 @@ function renderMonthlyCards(monthlyList) {
           <span>${escapeHtml(m.month_bucket)}</span>
           ${monthTag}
         </div>
-        <div class="daily-card-tokens" style="color: #d8b4fe;">${formatTokens(m.total_tokens)}</div>
+        <div class="daily-card-tokens text-month">${formatTokens(m.total_tokens)}</div>
       </div>
       <div class="daily-card-meta">
         <span>${m.conv_count} 会话 · ${m.total_steps || 0} 轮</span>
@@ -1123,7 +1220,7 @@ function renderDailyCards(dailyList) {
       tagsHtml += `<span class="badge badge-model">${escapeHtml(m)}</span>`;
     });
 
-    const todayTag = isTodayCard ? '<span style="color: #34d399; font-size: 0.7rem; font-weight: 600;">[今日]</span>' : '';
+    const todayTag = isTodayCard ? '<span class="text-cache" style="font-size: 0.7rem; font-weight: 600;">[今日]</span>' : '';
 
     card.innerHTML = `
       <div class="daily-card-header">
@@ -1289,19 +1386,19 @@ function renderModelsList(models) {
     let subStatsHtml = '';
 
     if (currentModelSortMetric === 'output_tokens') {
-      primaryValHtml = `<span style="font-weight: 700; color: #f472b6;">${formatTokens(m.output_tokens)}</span> <span style="font-size: 0.7rem; color: var(--text-dim);">输出</span>`;
+      primaryValHtml = `<span class="text-output" style="font-weight: 700;">${formatTokens(m.output_tokens)}</span> <span style="font-size: 0.7rem; color: var(--text-dim);">输出</span>`;
       subStatsHtml = `<span>总 ${formatTokens(m.total_tokens)} · ${m.conv_count} 会话</span><span>入 ${formatTokens(m.input_tokens)} · 缓 ${formatTokens(m.cache_tokens)}</span>`;
     } else if (currentModelSortMetric === 'input_tokens') {
-      primaryValHtml = `<span style="font-weight: 700; color: #38bdf8;">${formatTokens(m.input_tokens)}</span> <span style="font-size: 0.7rem; color: var(--text-dim);">输入</span>`;
+      primaryValHtml = `<span class="text-input" style="font-weight: 700;">${formatTokens(m.input_tokens)}</span> <span style="font-size: 0.7rem; color: var(--text-dim);">输入</span>`;
       subStatsHtml = `<span>总 ${formatTokens(m.total_tokens)} · ${m.conv_count} 会话</span><span>出 ${formatTokens(m.output_tokens)} · 缓 ${formatTokens(m.cache_tokens)}</span>`;
     } else {
-      primaryValHtml = `<span style="font-weight: 700; color: #f9fafb; font-variant-numeric: tabular-nums;">${formatTokens(m.total_tokens)}</span>`;
+      primaryValHtml = `<span class="text-strong" style="font-weight: 700; font-variant-numeric: tabular-nums;">${formatTokens(m.total_tokens)}</span>`;
       subStatsHtml = `<span>${m.conv_count} 会话</span><span>出 ${formatTokens(m.output_tokens)} · 入 ${formatTokens(m.input_tokens)} · 缓 ${formatTokens(m.cache_tokens)}</span>`;
     }
 
     item.innerHTML = `
       <div class="project-item-header">
-        <span style="font-weight: 600; color: #e5e7eb; display: flex; align-items: center; gap: 6px; min-width: 0;">
+        <span style="font-weight: 600; color: var(--text-strong); display: flex; align-items: center; gap: 6px; min-width: 0;">
           ${rankBadge}
           <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(m.model_display_name)}</span>
           ${activePill}
@@ -1309,7 +1406,7 @@ function renderModelsList(models) {
         <div style="flex-shrink: 0;">${primaryValHtml}</div>
       </div>
       <div class="project-progress-bar">
-        <div class="project-progress-fill" style="width: ${percent}%; background: linear-gradient(90deg, #6366f1, #f472b6);"></div>
+        <div class="project-progress-fill" style="width: ${percent}%; background: linear-gradient(90deg, var(--accent-primary), var(--color-output));"></div>
       </div>
       <div class="project-stats">
         ${subStatsHtml}
@@ -1383,15 +1480,16 @@ async function loadTrends() {
   const outputData = trends.map(t => t.output_tokens);
   const cacheData = trends.map(t => t.cache_tokens);
 
+  const ct = getChartThemeTokens();
   const inputBg = trends.map(t =>
     (currentDate !== 'all' && t.time_bucket === currentDate)
-      ? 'rgba(129, 140, 248, 0.95)'
-      : 'rgba(56, 189, 248, 0.72)'
+      ? ct.inputActive
+      : ct.inputBg
   );
   const outputBg = trends.map(t =>
     (currentDate !== 'all' && t.time_bucket === currentDate)
-      ? 'rgba(251, 191, 36, 0.95)'
-      : 'rgba(244, 114, 182, 0.82)'
+      ? ct.outputActive
+      : ct.outputBg
   );
 
   const barThickness = currentGranularity === 'month' ? 48 : 28;
@@ -1420,8 +1518,8 @@ async function loadTrends() {
           label: '输入 Tokens',
           data: inputData,
           backgroundColor: inputBg,
-          hoverBackgroundColor: '#38bdf8',
-          borderColor: '#38bdf8',
+          hoverBackgroundColor: ct.inputBorder,
+          borderColor: ct.inputBorder,
           borderWidth: 1,
           borderRadius: 3,
           maxBarThickness: barThickness,
@@ -1431,8 +1529,8 @@ async function loadTrends() {
           label: '输出 Tokens',
           data: outputData,
           backgroundColor: outputBg,
-          hoverBackgroundColor: '#f472b6',
-          borderColor: '#f472b6',
+          hoverBackgroundColor: ct.outputBorder,
+          borderColor: ct.outputBorder,
           borderWidth: 1,
           borderRadius: 3,
           maxBarThickness: barThickness,
@@ -1442,12 +1540,12 @@ async function loadTrends() {
           label: '缓存读取 (Cache)',
           data: cacheData,
           type: 'line',
-          borderColor: '#10b981',
-          backgroundColor: 'rgba(16, 185, 129, 0.08)',
+          borderColor: ct.cacheLine,
+          backgroundColor: ct.cacheFill,
           borderWidth: 2,
           pointRadius: 2.5,
           pointHoverRadius: 5,
-          pointBackgroundColor: '#10b981',
+          pointBackgroundColor: ct.cacheLine,
           fill: true,
           tension: 0.35
         }
@@ -1480,7 +1578,7 @@ async function loadTrends() {
       plugins: {
         legend: {
           labels: {
-            color: '#94a3b8',
+            color: ct.legend,
             font: { size: 11, family: 'Inter, system-ui, sans-serif' },
             usePointStyle: true,
             boxWidth: 8
@@ -1489,12 +1587,12 @@ async function loadTrends() {
         tooltip: {
           mode: 'index',
           intersect: false,
-          backgroundColor: 'rgba(15, 23, 42, 0.95)',
-          borderColor: 'rgba(255, 255, 255, 0.12)',
+          backgroundColor: ct.tooltipBg,
+          borderColor: ct.tooltipBorder,
           borderWidth: 1,
           padding: 10,
-          titleColor: '#f8fafc',
-          bodyColor: '#cbd5e1',
+          titleColor: ct.tooltipTitle,
+          bodyColor: ct.tooltipBody,
           cornerRadius: 8,
           callbacks: {
             title: (items) => {
@@ -1509,12 +1607,12 @@ async function loadTrends() {
       scales: {
         x: {
           stacked: true,
-          grid: { color: 'rgba(255, 255, 255, 0.04)' },
-          ticks: { color: '#64748b', font: { size: 11 } }
+          grid: { color: ct.grid },
+          ticks: { color: ct.tick, font: { size: 11 } }
         },
         y: {
-          grid: { color: 'rgba(255, 255, 255, 0.04)' },
-          ticks: { color: '#64748b', font: { size: 11 }, callback: (v) => formatTokens(v) }
+          grid: { color: ct.grid },
+          ticks: { color: ct.tick, font: { size: 11 }, callback: (v) => formatTokens(v) }
         }
       }
     }
@@ -1535,7 +1633,7 @@ async function loadConversations() {
     const scopeLabel = isMonthScope ? `月份 ${escapeHtml(currentDate)}` : `日期 ${escapeHtml(currentDate)}`;
     const emptyHtml = `
       <div style="padding: 36px 15px; text-align: center;">
-        <div style="font-size: 0.95rem; color: #e5e7eb; margin-bottom: 8px;">
+        <div style="font-size: 0.95rem; color: var(--text-strong); margin-bottom: 8px;">
           ${currentDate !== 'all' ? `所选 ${scopeLabel} 暂无匹配会话` : '暂无匹配的会话数据'}
         </div>
         <div style="font-size: 0.82rem; color: var(--text-dim); margin-bottom: 16px;">
@@ -1567,7 +1665,7 @@ async function loadConversations() {
     const titleRaw = c.title || c.preview || '无标题会话';
     const safeTitle = escapeHtml(titleRaw);
     const projectLabel = c.project_id === 'outside-of-project' ? '独立' : (c.project_id ? c.project_id.slice(0, 16) : '--');
-    const dateLabel = c.date_bucket ? `<span style="font-family: ui-monospace, SFMono-Regular, monospace; font-size: 0.76rem; color: #9ca3af;">${escapeHtml(c.date_bucket)}</span>` : '--';
+    const dateLabel = c.date_bucket ? `<span style="font-family: var(--font-mono); font-size: 0.76rem; color: var(--text-muted);">${escapeHtml(c.date_bucket)}</span>` : '--';
 
     tr.innerHTML = `
       <td>${dateLabel}</td>
@@ -1583,7 +1681,7 @@ async function loadConversations() {
       </td>
       <td><span class="badge badge-project" title="${escapeHtml(c.project_id)}">${escapeHtml(projectLabel)}</span></td>
       <td style="font-weight: 600;">${c.step_records_count || c.step_count} 轮</td>
-      <td class="token-cell" style="color: #10b981;">${formatTokens(c.total_cache_tokens)}</td>
+      <td class="token-cell text-cache">${formatTokens(c.total_cache_tokens)}</td>
       <td class="token-cell">
         <div>入: ${formatTokens(c.total_input_tokens)}</div>
         <div class="token-split">出: ${formatTokens(c.total_output_tokens)}</div>
@@ -1680,11 +1778,11 @@ async function openConversationDetail(cid) {
         item.innerHTML = `
           <div class="project-item-header">
             <span>${escapeHtml(s.agent_role || 'Subagent')} [${escapeHtml(s.model_display_name)}]</span>
-            <span style="color: #fff;">${formatTokens(s.total_tokens)}</span>
+            <span class="text-strong" style="font-weight: 700;">${formatTokens(s.total_tokens)}</span>
           </div>
           <div class="project-stats">
             <span>${s.step_records_count} 轮交互</span>
-            <span style="color: var(--primary-light);">点击查看详情 &gt;</span>
+            <span style="color: var(--accent-primary-strong);">点击查看详情 &gt;</span>
           </div>
         `;
         item.addEventListener('click', () => openConversationDetail(s.conversation_id));
@@ -1713,9 +1811,9 @@ async function openConversationDetail(cid) {
       tr.innerHTML = `
         <td style="font-weight: 600;">#${s.step_index}</td>
         <td><span class="badge badge-model" style="font-size: 0.7rem;">${escapeHtml(s.model_display_name || '--')}</span></td>
-        <td style="font-family: monospace;">${formatTokens(s.input_tokens)}</td>
-        <td style="font-family: monospace; color: #10b981;">${formatTokens(s.cache_read_tokens)}</td>
-        <td style="font-family: monospace; color: #ec4899;">${formatTokens(s.output_tokens)}</td>
+        <td style="font-family: var(--font-mono);">${formatTokens(s.input_tokens)}</td>
+        <td class="text-cache" style="font-family: var(--font-mono);">${formatTokens(s.cache_read_tokens)}</td>
+        <td class="text-output" style="font-family: var(--font-mono);">${formatTokens(s.output_tokens)}</td>
         <td>${toolsHtml}</td>
         <td style="font-size: 0.72rem; color: var(--text-dim);">${escapeHtml(formatDate(s.created_at))}</td>
       `;
@@ -1726,7 +1824,7 @@ async function openConversationDetail(cid) {
     if (reqId !== activeDetailRequestId) return;
     console.error(err);
     document.getElementById('drawerTitle').textContent = '加载失败';
-    document.getElementById('drawerStepsBody').innerHTML = '<tr><td colspan="7" style="text-align:center; color: #f43f5e; padding: 20px;">加载会话详情失败，请稍后重试</td></tr>';
+    document.getElementById('drawerStepsBody').innerHTML = '<tr><td colspan="7" class="text-output" style="text-align:center; padding: 20px;">加载会话详情失败，请稍后重试</td></tr>';
   }
 }
 
@@ -1736,6 +1834,7 @@ function renderStepGrowthChart(steps) {
     stepGrowthChartInstance.destroy();
   }
 
+  const ct = getChartThemeTokens();
   const labels = steps.map(s => `#${s.step_index}`);
   const inputData = steps.map(s => s.input_tokens);
   const cacheData = steps.map(s => s.cache_read_tokens);
@@ -1749,8 +1848,8 @@ function renderStepGrowthChart(steps) {
         {
           label: '未缓存输入 (Uncached Input)',
           data: inputData,
-          borderColor: '#38bdf8',
-          backgroundColor: 'rgba(56, 189, 248, 0.1)',
+          borderColor: ct.inputBorder,
+          backgroundColor: ct.cacheFill,
           fill: true,
           tension: 0.35,
           borderWidth: 2,
@@ -1760,7 +1859,7 @@ function renderStepGrowthChart(steps) {
         {
           label: '缓存读取 (Cache Hit)',
           data: cacheData,
-          borderColor: '#10b981',
+          borderColor: ct.cacheLine,
           borderWidth: 2,
           pointRadius: 2,
           pointHoverRadius: 4,
@@ -1769,7 +1868,7 @@ function renderStepGrowthChart(steps) {
         {
           label: '模型生成 (Output Tokens)',
           data: outputData,
-          borderColor: '#f472b6',
+          borderColor: ct.outputBorder,
           borderWidth: 2,
           pointRadius: 2,
           pointHoverRadius: 4
@@ -1782,7 +1881,7 @@ function renderStepGrowthChart(steps) {
       plugins: {
         legend: {
           labels: {
-            color: '#94a3b8',
+            color: ct.legend,
             font: { size: 10, family: 'Inter, system-ui, sans-serif' },
             usePointStyle: true,
             boxWidth: 8
@@ -1791,12 +1890,12 @@ function renderStepGrowthChart(steps) {
         tooltip: {
           mode: 'index',
           intersect: false,
-          backgroundColor: 'rgba(15, 23, 42, 0.95)',
-          borderColor: 'rgba(255, 255, 255, 0.12)',
+          backgroundColor: ct.tooltipBg,
+          borderColor: ct.tooltipBorder,
           borderWidth: 1,
           padding: 8,
-          titleColor: '#f8fafc',
-          bodyColor: '#cbd5e1',
+          titleColor: ct.tooltipTitle,
+          bodyColor: ct.tooltipBody,
           cornerRadius: 6,
           callbacks: {
             label: (ctx) => `  ${ctx.dataset.label}: ${formatTokens(ctx.raw)} (${formatExact(ctx.raw)})`
@@ -1804,10 +1903,10 @@ function renderStepGrowthChart(steps) {
         }
       },
       scales: {
-        x: { grid: { color: 'rgba(255, 255, 255, 0.04)' }, ticks: { color: '#64748b' } },
+        x: { grid: { color: ct.grid }, ticks: { color: ct.tick } },
         y: {
-          grid: { color: 'rgba(255, 255, 255, 0.04)' },
-          ticks: { color: '#64748b', callback: (v) => formatTokens(v) }
+          grid: { color: ct.grid },
+          ticks: { color: ct.tick, callback: (v) => formatTokens(v) }
         }
       }
     }
