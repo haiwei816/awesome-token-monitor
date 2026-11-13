@@ -801,7 +801,7 @@ header {
   background: rgba(15, 23, 42, 0.7);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
-  padding: 8px 12px 8px 36px;
+  padding: 8px 54px 8px 36px;
   color: var(--text-main);
   font-size: 0.83rem;
   outline: none;
@@ -1069,4 +1069,357 @@ tr:hover td {
 
 .toast-info {
   border-color: rgba(99, 102, 241, 0.4);
+}
+
+.toast-error {
+  border-color: rgba(244, 63, 94, 0.5);
+}
+
+/* =========================================================
+   v3.0 Telemetry UX & Accessibility Enhancements
+   ========================================================= */
+
+/* Keyboard Focus Rings */
+.btn:focus-visible,
+.select-control:focus-visible,
+.agent-tab:focus-visible,
+.tab-btn:focus-visible,
+.drawer-close:focus-visible,
+.drawer-cid-btn:focus-visible {
+  outline: 2px solid var(--primary-light);
+  outline-offset: 2px;
+}
+
+/* Split Export Dropdown */
+.dropdown-wrapper {
+  position: relative;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 248px;
+  background: rgba(13, 18, 31, 0.98);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-md);
+  padding: 6px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
+  z-index: 60;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-6px) scale(0.98);
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dropdown-menu.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+
+.dropdown-item {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 10px 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-main);
+  transition: background-color 0.15s ease;
+}
+
+.dropdown-item:hover {
+  background: rgba(99, 102, 241, 0.16);
+}
+
+.dropdown-icon {
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+
+.dropdown-label {
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.dropdown-desc {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* Active Filter Context Strip */
+.active-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 10px 14px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.28);
+  border-radius: var(--radius-md);
+  backdrop-filter: blur(12px);
+}
+
+.active-filter-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.active-filter-prefix {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #a5b4fc;
+}
+
+.active-filter-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e2e8f0;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.filter-chip:hover {
+  border-color: rgba(244, 63, 94, 0.55);
+  background: rgba(244, 63, 94, 0.14);
+  color: #fda4af;
+}
+
+.filter-chip-close {
+  font-size: 0.7rem;
+  opacity: 0.75;
+}
+
+.btn-reset-filters {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-reset-filters:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+/* Interactive KPI Enhancements */
+.kpi-interactive {
+  cursor: pointer;
+}
+
+.kpi-interactive::after {
+  content: "⇄";
+  position: absolute;
+  bottom: 12px;
+  right: 14px;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.kpi-interactive:hover::after {
+  opacity: 0.85;
+  transform: scale(1.1);
+}
+
+.kpi-value-model {
+  font-size: 1.45rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sub-quick-link {
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+  transition: all 0.15s ease;
+}
+
+.sub-quick-link:hover {
+  background: rgba(52, 211, 153, 0.22);
+  border-color: rgba(52, 211, 153, 0.5);
+}
+
+/* Chart Hint Pill */
+.chart-hint-pill {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.12);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+/* Search Input Shortcut & Clear Button */
+.search-kbd {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  padding: 1px 6px;
+  pointer-events: none;
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.08);
+  border: none;
+  color: var(--text-muted);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 0.72rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.search-clear-btn:hover {
+  background: rgba(244, 63, 94, 0.25);
+  color: #fda4af;
+}
+
+/* Sort Controls & Sortable Headers */
+.sort-control-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-sort-dir {
+  padding: 8px 10px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.sortable-th:hover {
+  color: #f8fafc;
+  background: rgba(30, 41, 59, 0.95);
+}
+
+.sortable-th.active-sort {
+  color: var(--primary-light);
+}
+
+.sort-arrow {
+  font-size: 0.72rem;
+  margin-left: 3px;
+  opacity: 0.85;
+}
+
+/* Interactive Table Rows */
+tr.conv-row {
+  cursor: pointer;
+}
+
+tr.conv-row:hover td {
+  background: rgba(99, 102, 241, 0.07);
+}
+
+/* Drawer Improvements */
+.drawer-cid-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.drawer-cid-btn:hover {
+  background: rgba(99, 102, 241, 0.16);
+  border-color: var(--primary-light);
+  color: #fff;
+}
+
+.step-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.step-table tbody tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.015);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .container {
+    padding: 14px 14px 36px;
+  }
+  .search-input-wrapper {
+    min-width: 100%;
+  }
+  .drawer-body .kpi-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Reduced Motion Respect */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

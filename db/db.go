@@ -164,7 +164,11 @@ func (d *DB) GetSummary(agentFilter, modelFilter, dateFilter string) (*collector
 		FROM conversations %s;
 	`, whereSQL)
 
-	res := &collector.SummaryResponse{}
+	res := &collector.SummaryResponse{
+		AgentsBreakdown:  []collector.AgentBreakdown{},
+		ModelsBreakdown:  []collector.ModelBreakdown{},
+		MonthlyBreakdown: []collector.MonthlyRecord{},
+	}
 	err := d.conn.QueryRow(query, args...).Scan(
 		&res.TotalInput,
 		&res.TotalOutput,
@@ -242,8 +246,8 @@ func (d *DB) GetSummary(agentFilter, modelFilter, dateFilter string) (*collector
 	)
 	res.MonthTotal = res.MonthInput + res.MonthOutput + res.MonthCache
 
-	// Peak context window
-	peakQuery := fmt.Sprintf(`SELECT COALESCE(MAX(input_tokens), 0) FROM step_records %s;`, whereSQL)
+	// Peak context window (uncached input + cached prompt)
+	peakQuery := fmt.Sprintf(`SELECT COALESCE(MAX(input_tokens + cache_read_tokens), 0) FROM step_records %s;`, whereSQL)
 	_ = d.conn.QueryRow(peakQuery, args...).Scan(&res.PeakContextWindow)
 
 	if res.TotalSteps > 0 {
@@ -383,8 +387,8 @@ func (d *DB) GetTrends(agentFilter, granularity, modelFilter, dateFilter string)
 	}
 
 	if dateFilter != "" && dateFilter != "all" {
-		if granularity == "month" && len(dateFilter) > 7 {
-			// When viewing monthly trend, show all months if user only had a single day selected
+		if granularity == "month" {
+			// When viewing monthly trend, show full multi-month series for comparison
 		} else if len(dateFilter) == 7 && strings.Contains(dateFilter, "-") {
 			where = append(where, "substr(date_bucket, 1, 7) = ?")
 			args = append(args, dateFilter)
@@ -410,6 +414,7 @@ func (d *DB) GetTrends(agentFilter, granularity, modelFilter, dateFilter string)
 		FROM step_records
 		%s
 		GROUP BY time_bucket
+		HAVING time_bucket IS NOT NULL AND time_bucket != ''
 		ORDER BY time_bucket ASC;
 	`, timeExpr, whereSQL)
 
@@ -419,7 +424,7 @@ func (d *DB) GetTrends(agentFilter, granularity, modelFilter, dateFilter string)
 	}
 	defer rows.Close()
 
-	var points []collector.TrendPoint
+	points := []collector.TrendPoint{}
 	for rows.Next() {
 		var pt collector.TrendPoint
 		if err := rows.Scan(&pt.TimeBucket, &pt.InputTokens, &pt.OutputTokens, &pt.CacheTokens, &pt.TotalTokens, &pt.StepCount); err == nil {
@@ -473,20 +478,28 @@ func (d *DB) GetConversations(agentFilter, modelFilter, dateFilter, sortCol, ord
 	_ = d.conn.QueryRow(countQuery, args...).Scan(&total)
 
 	// Sort
-	allowedCols := map[string]string{
-		"total_tokens":  "total_tokens",
-		"last_modified": "last_modified",
-		"step_count":    "step_count",
-	}
-	col, ok := allowedCols[sortCol]
-	if !ok {
-		col = "total_tokens"
-	}
 	dir := "DESC"
 	if strings.ToLower(order) == "asc" {
 		dir = "ASC"
 	}
-	orderBy := fmt.Sprintf("%s %s", col, dir)
+	allowedCols := map[string]string{
+		"total_tokens":  "total_tokens",
+		"input_tokens":  "total_input_tokens",
+		"output_tokens": "total_output_tokens",
+		"cache_tokens":  "total_cache_tokens",
+		"last_modified": "last_modified",
+		"step_count":    "step_records_count",
+	}
+	var orderBy string
+	if sortCol == "date" {
+		orderBy = fmt.Sprintf("date_bucket %s, last_modified %s", dir, dir)
+	} else {
+		col, ok := allowedCols[sortCol]
+		if !ok {
+			col = "total_tokens"
+		}
+		orderBy = fmt.Sprintf("%s %s", col, dir)
+	}
 
 	if limit <= 0 {
 		limit = 50
@@ -728,7 +741,7 @@ func (d *DB) GetConversationSteps(conversationID, dateBucket string) ([]collecto
 	}
 	defer rows.Close()
 
-	var steps []collector.StepRecord
+	steps := []collector.StepRecord{}
 	for rows.Next() {
 		var s collector.StepRecord
 		if err := rows.Scan(

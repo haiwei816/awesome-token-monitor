@@ -114,18 +114,12 @@ func (s *QoderScanner) Scan(scanStates map[string][2]float64) ([]Conversation, [
 			if item.Type == "user" && firstUser == "" && item.Message != nil {
 				if sContent, ok := item.Message.Content.(string); ok {
 					sContent = strings.TrimSpace(sContent)
-					if len(sContent) > 60 {
-						sContent = sContent[:60]
-					}
-					firstUser = sContent
+					firstUser = TruncateRunes(sContent, 60)
 				} else if lContent, ok := item.Message.Content.([]interface{}); ok && len(lContent) > 0 {
 					if m, ok := lContent[0].(map[string]interface{}); ok {
 						if t, ok := m["text"].(string); ok {
 							t = strings.TrimSpace(t)
-							if len(t) > 60 {
-								t = t[:60]
-							}
-							firstUser = t
+							firstUser = TruncateRunes(t, 60)
 						}
 					}
 				}

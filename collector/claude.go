@@ -140,10 +140,7 @@ func (s *ClaudeScanner) Scan(scanStates map[string][2]float64) ([]Conversation, 
 					for _, l := range lines {
 						l = strings.TrimSpace(l)
 						if l != "" && !strings.HasPrefix(l, "[UI language]") && !strings.HasPrefix(l, "<system") && !strings.HasPrefix(l, "==") && !strings.HasPrefix(l, "[User]") {
-							if len(l) > 60 {
-								l = l[:60]
-							}
-							firstUserPrompt = l
+							firstUserPrompt = TruncateRunes(l, 60)
 							break
 						}
 					}
@@ -153,10 +150,7 @@ func (s *ClaudeScanner) Scan(scanStates map[string][2]float64) ([]Conversation, 
 							if t, ok := m["text"].(string); ok {
 								t = strings.TrimSpace(t)
 								if t != "" && !strings.HasPrefix(t, "[UI language]") && !strings.HasPrefix(t, "<system") && !strings.HasPrefix(t, "[Request interrupted") {
-									if len(t) > 60 {
-										t = t[:60]
-									}
-									firstUserPrompt = t
+									firstUserPrompt = TruncateRunes(t, 60)
 									break
 								}
 							}

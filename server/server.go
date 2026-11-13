@@ -205,6 +205,15 @@ func (s *Server) handleAPI(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func csvEscape(val string) string {
+	val = strings.ReplaceAll(val, "\r\n", " ")
+	val = strings.ReplaceAll(val, "\n", " ")
+	if strings.ContainsAny(val, ",\"\r\n") {
+		return `"` + strings.ReplaceAll(val, `"`, `""`) + `"`
+	}
+	return val
+}
+
 func (s *Server) handleExportCSV(w http.ResponseWriter, agent, model, date string) {
 	convMap, err := s.db.GetConversations(agent, model, date, "total_tokens", "desc", "", 10000, 0)
 	if err != nil {
@@ -222,12 +231,11 @@ func (s *Server) handleExportCSV(w http.ResponseWriter, agent, model, date strin
 	}
 
 	for _, c := range convs {
-		titleEscaped := `"` + strings.ReplaceAll(c.Title, `"`, `""`) + `"`
 		lines = append(lines, fmt.Sprintf("%s,%s,%s,%s,%s,%s,%d,%d,%d,%d,%d,%s",
-			c.DateBucket, c.AgentType, c.ModelDisplayName, c.ConversationID,
-			titleEscaped, c.ProjectID, c.StepRecordsCount,
+			csvEscape(c.DateBucket), csvEscape(c.AgentType), csvEscape(c.ModelDisplayName), csvEscape(c.ConversationID),
+			csvEscape(c.Title), csvEscape(c.ProjectID), c.StepRecordsCount,
 			c.TotalInputTokens, c.TotalOutputTokens, c.TotalCacheTokens, c.TotalTokens,
-			c.LastModified,
+			csvEscape(c.LastModified),
 		))
 	}
 

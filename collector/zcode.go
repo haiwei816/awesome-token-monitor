@@ -190,10 +190,7 @@ func (s *ZCodeScanner) Scan(scanStates map[string][2]float64) ([]Conversation, [
 							}
 						}
 						if cText != "" {
-							if len(cText) > 60 {
-								cText = cText[:60]
-							}
-							firstUserPrompt = cText
+							firstUserPrompt = TruncateRunes(cText, 60)
 							break
 						}
 					}

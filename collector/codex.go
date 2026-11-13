@@ -110,10 +110,7 @@ func (s *CodexScanner) Scan(scanStates map[string][2]float64) ([]Conversation, [
 			if item.Type == "response_item" && title == "" {
 				cnt := strings.TrimSpace(item.Payload.Content)
 				if len(cnt) > 1 {
-					if len(cnt) > 40 {
-						cnt = cnt[:40]
-					}
-					title = cnt
+					title = TruncateRunes(cnt, 40)
 				}
 			}
 

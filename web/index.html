@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Awesome Token Monitor · AI Agent 模型监控大盘</title>
-  <link rel="stylesheet" href="style.css?v=2.2">
+  <link rel="stylesheet" href="style.css?v=3.0">
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
@@ -23,14 +23,14 @@
         <div class="brand-title">
           <div class="brand-header-row">
             <h1>Awesome Token Monitor</h1>
-            <span class="brand-version-badge">v2.0 Go</span>
+            <span class="brand-version-badge">v3.0 Telemetry</span>
           </div>
-          <p>全平台 AI Agent 本地遥测大盘: Codex · Claude Code · Qoder · Antigravity · WorkBuddy · ZCode · Pi</p>
+          <p>全平台 AI Agent 本地遥测大盘 · Codex · Claude Code · Qoder · Antigravity · WorkBuddy · ZCode · Pi</p>
         </div>
       </div>
 
       <div class="header-actions">
-        <div class="live-indicator">
+        <div class="live-indicator" title="后台每 15 秒自动增量采集本地对话日志">
           <span class="pulse-dot"></span>
           <span id="liveStatusText">实时同步中</span>
         </div>
@@ -55,71 +55,102 @@
           <option value="0">自动刷新: 关闭</option>
         </select>
 
-        <button id="btnSync" class="btn btn-primary">
+        <button id="btnSync" class="btn btn-primary" title="立即重新扫描所有 Agent 日志 (快捷键: R)">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
           立即同步
         </button>
 
-        <button id="btnExport" class="btn">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-          导出报表
-        </button>
+        <!-- Split Export Dropdown -->
+        <div class="dropdown-wrapper" id="exportDropdownWrapper">
+          <button id="btnExport" class="btn" aria-haspopup="true" aria-expanded="false" title="导出当前筛选视图数据">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            导出报表
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="opacity:0.7;"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="dropdown-menu" id="exportMenu" role="menu">
+            <button class="dropdown-item" id="btnExportCSV" role="menuitem">
+              <span class="dropdown-icon">📊</span>
+              <div>
+                <div class="dropdown-label">导出 CSV 表格</div>
+                <div class="dropdown-desc">适配 Excel / 表格分析 (UTF-8 BOM)</div>
+              </div>
+            </button>
+            <button class="dropdown-item" id="btnExportJSON" role="menuitem">
+              <span class="dropdown-icon">🧾</span>
+              <div>
+                <div class="dropdown-label">导出 JSON 完整快照</div>
+                <div class="dropdown-desc">包含汇总 KPI、每日/月度趋势与明细</div>
+              </div>
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
     <!-- Platform Selector Bar -->
-    <div class="agent-nav-bar">
-      <div class="agent-tab active" data-agent="all">
+    <div class="agent-nav-bar" role="tablist" aria-label="Agent 平台切换">
+      <div class="agent-tab active" data-agent="all" role="tab" tabindex="0">
         <span class="agent-icon">🌐</span>
         <span class="agent-name">全部 Agent</span>
         <span class="agent-pill" id="pillTotalAll">--</span>
       </div>
-      <div class="agent-tab" data-agent="codex">
+      <div class="agent-tab" data-agent="codex" role="tab" tabindex="0">
         <span class="agent-icon">🧠</span>
         <span class="agent-name">Codex</span>
         <span class="agent-pill" id="pillTotalCodex">--</span>
       </div>
-      <div class="agent-tab" data-agent="claude">
+      <div class="agent-tab" data-agent="claude" role="tab" tabindex="0">
         <span class="agent-icon">🟣</span>
         <span class="agent-name">Claude Code</span>
         <span class="agent-pill" id="pillTotalClaude">--</span>
       </div>
-      <div class="agent-tab" data-agent="pi">
+      <div class="agent-tab" data-agent="pi" role="tab" tabindex="0">
         <span class="agent-icon">🥧</span>
         <span class="agent-name">Pi Agent</span>
         <span class="agent-pill" id="pillTotalPi">--</span>
       </div>
-      <div class="agent-tab" data-agent="qoder">
+      <div class="agent-tab" data-agent="qoder" role="tab" tabindex="0">
         <span class="agent-icon">⚡</span>
         <span class="agent-name">Qoder</span>
         <span class="agent-pill" id="pillTotalQoder">--</span>
       </div>
-      <div class="agent-tab" data-agent="antigravity">
+      <div class="agent-tab" data-agent="antigravity" role="tab" tabindex="0">
         <span class="agent-icon">🛰️</span>
         <span class="agent-name">Antigravity</span>
         <span class="agent-pill" id="pillTotalAg">--</span>
       </div>
-      <div class="agent-tab" data-agent="workbuddy">
+      <div class="agent-tab" data-agent="workbuddy" role="tab" tabindex="0">
         <span class="agent-icon">💼</span>
         <span class="agent-name">WorkBuddy</span>
         <span class="agent-pill" id="pillTotalWb">--</span>
       </div>
-      <div class="agent-tab" data-agent="zcode">
+      <div class="agent-tab" data-agent="zcode" role="tab" tabindex="0">
         <span class="agent-icon">🔷</span>
         <span class="agent-name">ZCode</span>
         <span class="agent-pill" id="pillTotalZcode">--</span>
       </div>
     </div>
 
+    <!-- Active Filter Context Bar (Shown when any filter is active) -->
+    <div id="activeFilterBar" class="active-filter-bar" style="display: none;">
+      <div class="active-filter-left">
+        <span class="active-filter-prefix">当前筛选条件:</span>
+        <div id="activeFilterChips" class="active-filter-chips"></div>
+      </div>
+      <button id="btnResetAllFilters" class="btn-reset-filters" title="清除所有筛选条件，恢复全平台历史视图">
+        ↺ 重置全部筛选
+      </button>
+    </div>
+
     <!-- Top KPI Cards -->
     <section class="kpi-grid">
       <!-- 1. Total Tokens -->
-      <div class="kpi-card" style="--card-accent: #6366f1; cursor: pointer;" id="cardTodayOrTotal" title="点击卡片可一键切换【今日】与【全部历史】视图">
+      <div class="kpi-card kpi-interactive" style="--card-accent: #6366f1;" id="cardTodayOrTotal" title="点击卡片可一键切换【今日】与【全部历史】视图">
         <div class="kpi-header">
           <span class="kpi-title" id="kpiTotalTitle">历史消耗总量 (All-Time Total)</span>
-          <div style="display: flex; gap: 6px;">
-            <span class="kpi-badge" id="kpiTodayTotalBadge" style="cursor: pointer;" title="点击一键筛选仅查看今日数据">+0 今日</span>
-            <span class="kpi-badge" id="kpiMonthTotalBadge" style="background: rgba(99, 102, 241, 0.2); color: #818cf8; cursor: pointer;" title="点击一键筛选仅查看本月数据">+0 本月</span>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <span class="kpi-badge" id="kpiTodayTotalBadge" title="点击一键筛选仅查看今日数据">+0 今日</span>
+            <span class="kpi-badge" id="kpiMonthTotalBadge" style="background: rgba(99, 102, 241, 0.2); color: #818cf8;" title="点击一键筛选仅查看本月数据">+0 本月</span>
           </div>
         </div>
         <div class="kpi-value" id="valTotalTokens">--</div>
@@ -130,15 +161,15 @@
         </div>
       </div>
 
-      <!-- 2. This Month Tokens (月度总量独立KPI) -->
-      <div class="kpi-card" style="--card-accent: #a855f7; cursor: pointer;" id="cardThisMonth" title="点击快速筛选并查看本月会话与模型">
+      <!-- 2. This Month Tokens -->
+      <div class="kpi-card kpi-interactive" style="--card-accent: #a855f7;" id="cardThisMonth" title="点击快速筛选并查看本月会话与模型">
         <div class="kpi-header">
-          <span class="kpi-title" id="kpiMonthTitle">本月消耗总量 (2026-11)</span>
+          <span class="kpi-title" id="kpiMonthTitle">本月消耗总量</span>
           <span class="kpi-badge" id="kpiMonthRatioBadge" style="background: rgba(168, 85, 247, 0.2); color: #c084fc;">占历史 --%</span>
         </div>
         <div class="kpi-value" style="color: #c084fc;" id="valMonthTotalTokens">--</div>
         <div class="kpi-sub" id="kpiMonthSub">
-          <span id="subTodayLink" style="cursor: pointer; padding: 1px 4px; border-radius: 4px; background: rgba(52, 211, 153, 0.1);" title="点击直接切换至今日消耗视图">今日消耗: <span class="highlight" style="color: #34d399;" id="valTodayTokensSub">--</span></span>
+          <span id="subTodayLink" class="sub-quick-link" title="点击直接切换至今日消耗视图">今日消耗: <span class="highlight" style="color: #34d399;" id="valTodayTokensSub">--</span></span>
           <span style="margin: 0 4px; color: var(--border-color);">|</span>
           <span>本月轮次:</span>
           <span class="highlight" id="valMonthStepsSub">--</span>
@@ -173,7 +204,7 @@
       </div>
 
       <!-- 5. Cache Read Tokens -->
-      <div class="kpi-card" style="--card-accent: #10b981; cursor: pointer;" id="cardCache" title="点击卡片可一键切换【今日】与【全部历史】视图">
+      <div class="kpi-card kpi-interactive" style="--card-accent: #10b981;" id="cardCache" title="点击卡片可一键切换【今日】与【全部历史】视图">
         <div class="kpi-header">
           <span class="kpi-title" id="kpiCacheTitle">Prompt 缓存命中 (Cache)</span>
           <span class="kpi-badge" style="background: rgba(16, 185, 129, 0.2); color: #10b981;" id="valCacheHitRate">--% 命中</span>
@@ -194,7 +225,7 @@
           <span class="kpi-title" id="kpiModelsTitle">涉及模型型号 (Models)</span>
           <span class="kpi-badge" id="valModelsCount">0 种型号</span>
         </div>
-        <div class="kpi-value" id="valPrimaryModel">--</div>
+        <div class="kpi-value kpi-value-model" id="valPrimaryModel">--</div>
         <div class="kpi-sub" id="kpiModelsSub">
           <span>主力模型消耗:</span>
           <span class="highlight" style="color: #f59e0b;" id="valPrimaryModelTokens">--</span>
@@ -217,7 +248,7 @@
       </div>
     </section>
 
-    <!-- Monthly Tokens Breakdown Shelf (月度消耗总量分布概览) -->
+    <!-- Monthly Tokens Breakdown Shelf -->
     <section class="card" style="margin-bottom: 24px;" id="monthlyOverviewSection">
       <div class="card-header">
         <div class="card-title">
@@ -226,7 +257,7 @@
         </div>
         <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
           <span style="font-size: 0.8rem; color: var(--text-dim);" id="monthlyOverviewCountBadge">点击各月份卡片可一键按月筛选</span>
-          <button class="btn btn-sm" id="btnQuickAllMonths" style="padding: 3px 10px; font-size: 0.75rem;" title="查看全部历史总量">
+          <button class="btn btn-sm" id="btnQuickAllMonths" style="padding: 4px 10px; font-size: 0.76rem;" title="查看全部历史总量">
             🌐 查看全量汇总
           </button>
         </div>
@@ -236,23 +267,28 @@
       </div>
     </section>
 
-    <!-- Daily / Monthly Timeline Ledger Cards (按天/按月归档记录) -->
+    <!-- Daily / Monthly Timeline Ledger Cards -->
     <section class="card" style="margin-bottom: 24px;">
-      <div class="card-header">
+      <div class="card-header" style="margin-bottom: 12px;">
         <div class="card-title">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           <span id="ledgerTitleText">按天归档时间流 (Daily Ledger Timeline)</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
           <div class="tab-group" id="ledgerViewTabs">
             <button class="tab-btn active" data-view="day">📅 按天时间流</button>
             <button class="tab-btn" data-view="month">🗓️ 按月统计归档</button>
           </div>
           <span style="font-size: 0.8rem; color: var(--text-dim);" id="dailyCountBadge">点击卡片可一键筛选记录</span>
+          <button class="btn btn-sm" id="btnToggleLedger" style="padding: 4px 10px; font-size: 0.75rem;" title="展开/收起时间流卡片区">
+            ▾ 收起
+          </button>
         </div>
       </div>
-      <div class="daily-cards-scroll" id="dailyCardsContainer">
-        <!-- Populated by JS -->
+      <div id="ledgerBodyWrapper">
+        <div class="daily-cards-scroll" id="dailyCardsContainer">
+          <!-- Populated by JS -->
+        </div>
       </div>
     </section>
 
@@ -264,6 +300,7 @@
           <div class="card-title">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><path d="M3 3v18h18M18 9l-5 5-4-4-6 6"/></svg>
             <span id="trendChartTitle">Token 消耗与缓存走势</span>
+            <span class="chart-hint-pill" title="点击图表中的日期或月份柱状条，可直接下钻筛选该时段数据">可点击柱状条下钻</span>
           </div>
           <div class="tab-group" id="trendGranularityTabs">
             <button class="tab-btn" data-granularity="hour">按小时统计</button>
@@ -283,13 +320,13 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
             模型型号排行榜 (Top Models)
           </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
             <div class="tab-group" id="modelSortTabs">
               <button class="tab-btn active" data-metric="total_tokens">总消耗</button>
               <button class="tab-btn" data-metric="output_tokens">模型输出</button>
               <button class="tab-btn" data-metric="input_tokens">输入</button>
             </div>
-            <button id="btnClearModelFilter" class="btn btn-sm" style="display: none; padding: 2px 8px; font-size: 0.75rem; background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #fbbf24; border-radius: 4px; cursor: pointer;" title="点击取消筛选，返回全部模型">
+            <button id="btnClearModelFilter" class="btn btn-sm" style="display: none; padding: 3px 8px; font-size: 0.75rem; background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #fbbf24; border-radius: 6px; cursor: pointer;" title="点击取消筛选，返回全部模型">
               ✕ 返回全部模型
             </button>
             <span style="font-size: 0.8rem; color: var(--text-dim);" id="modelCountBadge">--</span>
@@ -310,21 +347,28 @@
         </div>
 
         <div class="table-controls">
-          <!-- Search Input -->
+          <!-- Search Input with Shortcut & Clear -->
           <div class="search-input-wrapper">
             <span class="search-icon">🔍</span>
-            <input type="text" id="searchInput" class="search-input" placeholder="搜索会话标题 / 模型 / 日期 / ID...">
+            <input type="text" id="searchInput" class="search-input" placeholder="搜索会话标题 / 项目 / 会话 ID...">
+            <kbd class="search-kbd" id="searchKbdHint" title="按 / 键快速聚焦搜索">/</kbd>
+            <button type="button" id="btnClearSearch" class="search-clear-btn" title="清除搜索关键词" style="display: none;">✕</button>
           </div>
 
-          <!-- Sort Select -->
-          <select id="sortSelect" class="select-control">
-            <option value="total_tokens" selected>按总 Token 排序</option>
-            <option value="date">按日期降序 排序</option>
-            <option value="input_tokens">按输入 Token 排序</option>
-            <option value="output_tokens">按输出 Token 排序</option>
-            <option value="cache_tokens">按缓存命中 排序</option>
-            <option value="step_count">按交互轮次 排序</option>
-          </select>
+          <!-- Sort Select + Order Direction Toggle -->
+          <div class="sort-control-group">
+            <select id="sortSelect" class="select-control" title="排序字段">
+              <option value="total_tokens" selected>按总 Token 排序</option>
+              <option value="date">按日期排序</option>
+              <option value="input_tokens">按输入 Token 排序</option>
+              <option value="output_tokens">按输出 Token 排序</option>
+              <option value="cache_tokens">按缓存命中排序</option>
+              <option value="step_count">按交互轮次排序</option>
+            </select>
+            <button type="button" id="btnToggleSortOrder" class="btn btn-sort-dir" title="切换降序 / 升序">
+              ↓ 降序
+            </button>
+          </div>
         </div>
       </div>
 
@@ -333,15 +377,15 @@
         <table>
           <thead>
             <tr>
-              <th>日期</th>
+              <th class="sortable-th" data-sort="date">日期 <span class="sort-arrow"></span></th>
               <th>Agent 平台</th>
               <th>模型型号 (Model)</th>
               <th style="min-width: 260px;">会话名称 / ID</th>
               <th>项目/路径</th>
-              <th>轮次</th>
-              <th>缓存 (Cache)</th>
-              <th>输入 / 输出 Tokens</th>
-              <th style="min-width: 130px;">总 Tokens 消耗</th>
+              <th class="sortable-th" data-sort="step_count">轮次 <span class="sort-arrow"></span></th>
+              <th class="sortable-th" data-sort="cache_tokens">缓存 (Cache) <span class="sort-arrow"></span></th>
+              <th class="sortable-th" data-sort="input_tokens">输入 / 输出 Tokens <span class="sort-arrow"></span></th>
+              <th class="sortable-th active-sort" data-sort="total_tokens" style="min-width: 140px;">总 Tokens 消耗 <span class="sort-arrow">↓</span></th>
               <th style="text-align: right;">操作</th>
             </tr>
           </thead>
@@ -354,47 +398,54 @@
       <!-- Pagination -->
       <div class="pagination">
         <span id="pageInfo">第 1 页</span>
-        <button id="btnPrevPage" class="btn" style="padding: 4px 10px;" disabled>上一页</button>
-        <button id="btnNextPage" class="btn" style="padding: 4px 10px;" disabled>下一页</button>
+        <button id="btnPrevPage" class="btn" style="padding: 5px 12px;" disabled>← 上一页</button>
+        <button id="btnNextPage" class="btn" style="padding: 5px 12px;" disabled>下一页 →</button>
       </div>
     </section>
   </div>
 
   <!-- Detail Drawer -->
   <div class="drawer-backdrop" id="drawerBackdrop"></div>
-  <div class="drawer" id="conversationDrawer">
+  <div class="drawer" id="conversationDrawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
     <div class="drawer-header">
       <div class="drawer-title-area">
         <h2 id="drawerTitle">会话详情</h2>
-        <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px; flex-wrap: wrap;">
+        <div style="display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap;">
           <span id="drawerDateBadge" class="badge badge-project"></span>
           <span id="drawerAgentBadge" class="badge"></span>
           <span id="drawerModelBadge" class="badge badge-model"></span>
-          <span style="font-size: 0.75rem; color: var(--text-dim); font-family: monospace;" id="drawerCid"></span>
+          <button type="button" class="drawer-cid-btn" id="btnCopyDrawerCid" title="点击复制完整会话 ID">
+            <span id="drawerCid"></span>
+            <span>📋</span>
+          </button>
         </div>
       </div>
-      <button class="drawer-close" id="btnDrawerClose">&times;</button>
+      <button class="drawer-close" id="btnDrawerClose" title="关闭详情 (Esc)">&times;</button>
     </div>
 
     <div class="drawer-body">
       <!-- Drawer KPI Summary -->
-      <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 0;">
+      <div class="kpi-grid" style="grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 0;">
         <div class="kpi-card" style="padding: 12px;">
-          <div class="kpi-title" style="font-size: 0.75rem;">总 Token</div>
-          <div class="kpi-value" style="font-size: 1.25rem;" id="drawerTotalTokens">--</div>
+          <div class="kpi-title" style="font-size: 0.72rem;">总 Token</div>
+          <div class="kpi-value" style="font-size: 1.2rem;" id="drawerTotalTokens">--</div>
         </div>
-        <div class="kpi-card" style="padding: 12px;">
-          <div class="kpi-title" style="font-size: 0.75rem;">缓存命中率</div>
-          <div class="kpi-value" style="font-size: 1.25rem; color: #10b981;" id="drawerCacheRate">--%</div>
+        <div class="kpi-card" style="padding: 12px; --card-accent: #10b981;">
+          <div class="kpi-title" style="font-size: 0.72rem;">缓存命中率</div>
+          <div class="kpi-value" style="font-size: 1.2rem; color: #10b981;" id="drawerCacheRate">--%</div>
         </div>
-        <div class="kpi-card" style="padding: 12px;">
-          <div class="kpi-title" style="font-size: 0.75rem;">交互轮数</div>
-          <div class="kpi-value" style="font-size: 1.25rem;" id="drawerStepCount">--</div>
+        <div class="kpi-card" style="padding: 12px; --card-accent: #8b5cf6;">
+          <div class="kpi-title" style="font-size: 0.72rem;">交互轮数</div>
+          <div class="kpi-value" style="font-size: 1.2rem;" id="drawerStepCount">--</div>
+        </div>
+        <div class="kpi-card" style="padding: 12px; --card-accent: #06b6d4;">
+          <div class="kpi-title" style="font-size: 0.72rem;">单步峰值上下文</div>
+          <div class="kpi-value" style="font-size: 1.2rem; color: #22d3ee;" id="drawerContextPeak">--</div>
         </div>
       </div>
 
       <!-- Context Window Growth Waterfall Chart -->
-      <div class="card" style="padding: 16px;">
+      <div class="card" style="padding: 16px; margin-bottom: 0;">
         <div class="card-title" style="font-size: 0.95rem; margin-bottom: 12px;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
           单会话上下文走势与单步消耗 (Context Waterfall)
@@ -419,7 +470,7 @@
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
           逐轮交互流水记录 (Step Log)
         </div>
-        <div class="table-container" style="max-height: 360px;">
+        <div class="table-container" style="max-height: 360px; overflow-y: auto;">
           <table class="step-table">
             <thead>
               <tr>
@@ -437,11 +488,12 @@
           </table>
         </div>
       </div>
+    </div>
   </div>
 
   <!-- Toast Notification Container -->
   <div id="toastContainer" class="toast-container"></div>
 
-  <script src="app.js?v=2.2"></script>
+  <script src="app.js?v=3.0"></script>
 </body>
 </html>

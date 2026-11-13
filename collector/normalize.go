@@ -211,6 +211,18 @@ func ResolveCindyEngine(agentKind, rawModel string) string {
 	return "codex"
 }
 
+// TruncateRunes safely truncates a UTF-8 string to at most max runes without splitting multi-byte characters.
+func TruncateRunes(s string, max int) string {
+	if max <= 0 {
+		return ""
+	}
+	runes := []rune(s)
+	if len(runes) <= max {
+		return s
+	}
+	return string(runes[:max])
+}
+
 // GetEngineRole returns the display role for an engine.
 func GetEngineRole(engine string) string {
 	switch engine {

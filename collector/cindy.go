@@ -346,12 +346,13 @@ func (s *CindyScanner) scanSingleDB(dbPath, defaultProject string) ([]Conversati
 			title = strings.TrimSpace(meta.title)
 		}
 		if title == "" {
+			shortSID := TruncateRunes(g.sid, 8)
 			if targetEngine == "pi" {
-				title = fmt.Sprintf("Pi 任务 #%s", g.sid[:8])
+				title = fmt.Sprintf("Pi 任务 #%s", shortSID)
 			} else if targetEngine == "claude" {
-				title = fmt.Sprintf("Claude 任务 #%s", g.sid[:8])
+				title = fmt.Sprintf("Claude 任务 #%s", shortSID)
 			} else {
-				title = fmt.Sprintf("Codex 任务 #%s", g.sid[:8])
+				title = fmt.Sprintf("Codex 任务 #%s", shortSID)
 			}
 		}
 
@@ -435,7 +436,7 @@ func (s *CindyScanner) scanSingleDB(dbPath, defaultProject string) ([]Conversati
 
 		title := strings.TrimSpace(meta.title)
 		if title == "" {
-			title = fmt.Sprintf("任务 #%s", sid[:8])
+			title = fmt.Sprintf("任务 #%s", TruncateRunes(sid, 8))
 		}
 		prj := meta.workingDir
 		if prj == "" {
